@@ -41,10 +41,22 @@ public class ChessBoard {
      * (How the game of chess normally starts)
      */
     public void resetBoard() {
-
+        this.clearBoard();
+        // Black is on top, white on bottom
+        for (int row = 0; row < squares.length; row++) {
+            for (int col = 0; col < squares[row].length; col++) {
+                ChessPiece space = squares[row][col];
+                // Your code here
+            }
+        }
     }
 
     private int adjustPositionToArray(int position) {
         return  position - 1;
+    }
+
+    private void clearBoard() {
+
+        this.squares = new ChessPiece[8][8];
     }
 }

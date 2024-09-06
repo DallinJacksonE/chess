@@ -15,10 +15,10 @@ public class ChessPosition {
             throw new IllegalArgumentException("Row in ChessPosition not on board");
         } else if (col > 8 || col < 0) {
             throw new IllegalArgumentException("Col in ChessPosition not on board");
+        } else {
+            this.row = row;
+            this.col = col;
         }
-        this.row = row;
-        this.col = col;
-
     }
 
     /**
