@@ -43,12 +43,7 @@ public class ChessBoard {
     public void resetBoard() {
         this.clearBoard();
         // Black is on top, white on bottom
-        for (int row = 0; row < squares.length; row++) {
-            for (int col = 0; col < squares[row].length; col++) {
-                ChessPiece space = squares[row][col];
-                // Your code here
-            }
-        }
+
     }
 
     private int adjustPositionToArray(int position) {

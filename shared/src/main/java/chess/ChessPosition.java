@@ -38,4 +38,20 @@ public class ChessPosition {
 
         return this.col;
     }
+
+    /**
+     * @return the row position for the CHessBoardArray
+     * 0 Codes the bottom row
+     * */
+    public int getArrayRow() {
+        return this.row - 1;
+    }
+
+    /**
+     * @return the col position for the CHessBoardArray
+     * 0 Codes the left col
+     * */
+    public int getArrayCol() {
+        return this.col - 1;
+    }
 }
