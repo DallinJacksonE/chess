@@ -39,6 +39,10 @@ public class ChessPosition {
         return this.col;
     }
 
+    public char getRowAsChar() {
+        return letterPosition();
+    }
+
     /**
      * @return the row position for the CHessBoardArray
      * 0 Codes the bottom row
@@ -48,10 +52,26 @@ public class ChessPosition {
     }
 
     /**
-     * @return the col position for the CHessBoardArray
+     * @return the col position for the ChessBoardArray
      * 0 Codes the left col
      * */
     public int getArrayCol() {
         return this.col - 1;
     }
+
+    public char letterPosition() {
+
+        return switch (this.row) {
+            case 1 -> 'a';
+            case 2 -> 'b';
+            case 3 -> 'c';
+            case 4 -> 'd';
+            case 5 -> 'e';
+            case 6 -> 'f';
+            case 7 -> 'g';
+            case 8 -> 'h';
+            default -> throw new IllegalArgumentException("Invalid row number");
+        };
+    }
+
 }
