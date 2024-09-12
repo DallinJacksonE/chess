@@ -20,8 +20,6 @@ public class ChessBoard {
      */
     public void addPiece(ChessPosition position, ChessPiece piece) {
         squares[position.getArrayRow()][position.getArrayCol()] = piece;
-
-
     }
 
     /**
@@ -32,7 +30,6 @@ public class ChessBoard {
      * position
      */
     public ChessPiece getPiece(ChessPosition position) {
-
         return squares[position.getArrayRow()][position.getArrayCol()];
     }
 
@@ -43,7 +40,6 @@ public class ChessBoard {
     public void resetBoard() {
         this.clearBoard();
         // Black is on top, white on bottom
-
     }
 
     private void clearBoard() {

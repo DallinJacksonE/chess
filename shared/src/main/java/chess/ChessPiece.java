@@ -11,12 +11,12 @@ import java.util.Collection;
 public class ChessPiece {
     private final ChessGame.TeamColor pieceColor;
     private final ChessPiece.PieceType pieceType;
-    private final MoveRules myMoves;
+    private final PieceMovesCalculator myMoves;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor = pieceColor;
         this.pieceType = type;
-        this.myMoves = new MoveRules(this.pieceType);
+        this.myMoves = new PieceMovesCalculator(this);
     }
 
     /**
@@ -54,6 +54,6 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        return myMoves.validMovesCollection(board, myPosition);
+        return myMoves.pieceMoves(board, myPosition);
     }
 }
