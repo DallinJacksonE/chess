@@ -2,6 +2,8 @@ package chess;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -66,14 +68,20 @@ public class PieceMovesCalculator {
     private static class PawnMovesCalculator extends PieceMovesCalculator {
         // this.validMoves is the moves collection to add to
         // each child class will call their own
+        Set<ChessPiece.PieceType> promotionTypes = new HashSet<>();
+
         protected PawnMovesCalculator() {
             this.validMoves = new ArrayList<>();
+            promotionTypes.add(ChessPiece.PieceType.BISHOP);
+            promotionTypes.add(ChessPiece.PieceType.QUEEN);
+            promotionTypes.add(ChessPiece.PieceType.ROOK);
+            promotionTypes.add(ChessPiece.PieceType.KNIGHT);
         }
 
         @Override
         public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
             this.currentPosition = myPosition;
-            pawnMovements(board, myPosition);
+            pawnMovements(board, myPosition, promotionTypes);
             return this.validMoves;
         }
 
@@ -214,7 +222,7 @@ public class PieceMovesCalculator {
 
     }
 
-    protected void pawnMovements(ChessBoard board, ChessPosition myPosition) {
+    protected void pawnMovements(ChessBoard board, ChessPosition myPosition, Set<ChessPiece.PieceType> promotionTypes) {
         Boolean firstMove;
         ChessPiece pawnObject = board.getPiece(myPosition);
 
@@ -225,26 +233,23 @@ public class PieceMovesCalculator {
                 firstMove = Boolean.FALSE;
             }
             if (singleCheck(board, myPosition, Directions.UP) == 0) {
-                ChessPiece.PieceType promotion = null;
-//                if (myPosition.getRow() + 1 == 8) {
-//                    promotion = the right type
-//                }
                 ChessPosition advanceOne = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn());
-                addMove(advanceOne, promotion);
+
+                addPawnMove(advanceOne, ChessGame.TeamColor.WHITE, promotionTypes);
                 //if first move go forward again
-                ChessPosition advancedOne = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn());
-                if (Boolean.TRUE.equals(firstMove) && singleCheck(board, advancedOne, Directions.UP) == 0) {
-                    addMove(new ChessPosition(advancedOne.getRow() + 1, advancedOne.getColumn()), null);
+
+                if (Boolean.TRUE.equals(firstMove) && singleCheck(board, advanceOne, Directions.UP) == 0) {
+                    addMove(new ChessPosition(advanceOne.getRow() + 1, advanceOne.getColumn()), null);
                 }
 
             }
             if (singleCheck(board, myPosition, Directions.UPLEFT) == 1) {
                 ChessPosition attackLeft = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn() - 1);
-                addMove(attackLeft, null);
+                addPawnMove(attackLeft, ChessGame.TeamColor.WHITE, promotionTypes);
             }
             if (singleCheck(board, myPosition, Directions.UPRIGHT) == 1) {
                 ChessPosition attackRight = new ChessPosition(myPosition.getRow() + 1, myPosition.getColumn() + 1);
-                addMove(attackRight, null);
+                addPawnMove(attackRight, ChessGame.TeamColor.WHITE, promotionTypes);
 
             }
 
@@ -255,26 +260,38 @@ public class PieceMovesCalculator {
                 firstMove = Boolean.FALSE;
             }
             if (singleCheck(board, myPosition, Directions.DOWN) == 0) {
-                ChessPiece.PieceType promotion = null;
-//                if (myPosition.getRow() + 1 == 8) {
-//                    promotion = the right type
-//                }
+
                 ChessPosition advanceOne = new ChessPosition(myPosition.getRow() - 1, myPosition.getColumn());
-                addMove(advanceOne, promotion);
+
+                addPawnMove(advanceOne, ChessGame.TeamColor.BLACK, promotionTypes);
+
                 //if first move go forward again
-                ChessPosition advancedOne = new ChessPosition(myPosition.getRow() - 1, myPosition.getColumn());
-                if (Boolean.TRUE.equals(firstMove) && singleCheck(board, advancedOne, Directions.DOWN) == 0) {
-                    addMove(new ChessPosition(advancedOne.getRow() - 1, advancedOne.getColumn()), null);
+                if (Boolean.TRUE.equals(firstMove) && singleCheck(board, advanceOne, Directions.DOWN) == 0) {
+                    addMove(new ChessPosition(advanceOne.getRow() - 1, advanceOne.getColumn()), null);
                 }
             }
             if (singleCheck(board, myPosition, Directions.DOWNLEFT) == 1) {
                 ChessPosition attackLeft = new ChessPosition(myPosition.getRow() - 1, myPosition.getColumn() - 1);
-                addMove(attackLeft, null);
+                addPawnMove(attackLeft, ChessGame.TeamColor.BLACK, promotionTypes);
             }
             if (singleCheck(board, myPosition, Directions.DOWNRIGHT) == 1) {
                 ChessPosition attackLeft = new ChessPosition(myPosition.getRow() - 1, myPosition.getColumn() + 1);
-                addMove(attackLeft, null);
+                addPawnMove(attackLeft, ChessGame.TeamColor.BLACK, promotionTypes);
             }
+        }
+    }
+
+    private void addPawnMove(ChessPosition newPosition, ChessGame.TeamColor color, Set<ChessPiece.PieceType> promotionTypes) {
+        if ((newPosition.getRow() == 1) && color == ChessGame.TeamColor.BLACK) {
+            for (ChessPiece.PieceType type : promotionTypes) {
+                addMove(newPosition, type);
+            }
+        } else if ((newPosition.getRow() == 8) && color == ChessGame.TeamColor.WHITE) {
+            for (ChessPiece.PieceType type : promotionTypes) {
+                addMove(newPosition, type);
+            }
+        } else {
+            addMove(newPosition, null);
         }
     }
 
