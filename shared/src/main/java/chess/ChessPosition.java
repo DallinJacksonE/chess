@@ -80,7 +80,7 @@ public class ChessPosition {
 
     @Override
     public String toString() {
-        return new Gson().toJson(this);
+        return "{" + this.row + ", " + this.col + "}";
     }
 
     @Override

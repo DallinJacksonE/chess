@@ -48,7 +48,7 @@ public class ChessMove {
 
     @Override
     public String toString() {
-        return new Gson().toJson(this);
+        return startPosition + "->" + endPosition;
     }
 
     @Override
