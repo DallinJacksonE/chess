@@ -1,4 +1,6 @@
-package chess;
+package chess.rules;
+
+import chess.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,7 +12,7 @@ public class PawnMovesCalculator extends PieceMovesCalculator {
     // each child class will call their own
     Set<ChessPiece.PieceType> promotionTypes = new HashSet<>();
 
-    protected PawnMovesCalculator() {
+    public PawnMovesCalculator() {
         this.validMoves = new ArrayList<>();
         promotionTypes.add(ChessPiece.PieceType.BISHOP);
         promotionTypes.add(ChessPiece.PieceType.QUEEN);

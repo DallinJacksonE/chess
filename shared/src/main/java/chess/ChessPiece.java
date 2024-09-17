@@ -1,5 +1,5 @@
 package chess;
-
+import chess.rules.*;
 import java.util.Collection;
 import java.util.Objects;
 

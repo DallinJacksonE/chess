@@ -1,10 +1,15 @@
-package chess;
+package chess.rules;
+
+import chess.ChessBoard;
+import chess.ChessMove;
+import chess.ChessPosition;
+import chess.PieceMovesCalculator;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
 public class QueenMovesCalculator extends PieceMovesCalculator {
-    protected QueenMovesCalculator() {
+    public QueenMovesCalculator() {
         this.validMoves = new ArrayList<>();
 
     }
