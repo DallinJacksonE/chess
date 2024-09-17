@@ -1,7 +1,5 @@
 package chess;
 
-import com.google.gson.Gson;
-
 import java.util.Objects;
 
 /**
@@ -30,7 +28,6 @@ public class ChessPosition {
      * 1 codes for the bottom row
      */
     public int getRow() {
-
         return this.row;
     }
 
@@ -39,7 +36,6 @@ public class ChessPosition {
      * 1 codes for the left row
      */
     public int getColumn() {
-
         return this.col;
     }
 
@@ -48,7 +44,7 @@ public class ChessPosition {
     }
 
     /**
-     * @return the row position for the CHessBoardArray
+     * @return the row position for the ChessBoardArray
      * 0 Codes the bottom row
      * */
     public int getArrayRow() {
@@ -64,7 +60,6 @@ public class ChessPosition {
     }
 
     public char letterPosition() {
-
         return switch (this.row) {
             case 1 -> 'a';
             case 2 -> 'b';
@@ -80,7 +75,7 @@ public class ChessPosition {
 
     @Override
     public String toString() {
-        return "{" + this.row + ", " + this.col + "}";
+        return "(" + getRowAsChar() + this.col + ")";
     }
 
     @Override

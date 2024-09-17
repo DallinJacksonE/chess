@@ -1,9 +1,5 @@
 package chess;
-
-import com.google.gson.Gson;
-
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * A chessboard that can hold and rearrange chess pieces.
@@ -53,61 +49,27 @@ public class ChessBoard {
     }
 
     private ChessPiece setupPiece(int row, int col) {
-        switch (row) {
-            case 7 -> {
-                switch (col) {
-                    case 0, 7 -> {
-                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK);
-                    }
-                    case 1, 6 -> {
-                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT);
-                    }
-                    case 2, 5 -> {
-                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP);
-                    }
-                    case 3 -> {
-                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.QUEEN);
-                    }
-                    case 4 -> {
-                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING);
-                    }
-                    default -> {
-                        return null;
-                    }
-                }
-            }
-            case 6 -> {
-                return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.PAWN);
-            }
-            case 1 -> {
-                return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.PAWN);
-            }
-            case 0 -> {
-                switch (col) {
-                    case 0, 7 -> {
-                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK);
-                    }
-                    case 1, 6 -> {
-                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT);
-                    }
-                    case 2, 5 -> {
-                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP);
-                    }
-                    case 3 -> {
-                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.QUEEN);
-                    }
-                    case 4 -> {
-                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KING);
-                    }
-                    default -> {
-                        return null; // Empty squares
-                    }
-                }
-            }
-            default -> {
-                return null; // Empty squares
-            }
-        }
+        return switch (row) {
+            case 7 -> switch (col) {
+                case 0, 7 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK);
+                case 1, 6 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT);
+                case 2, 5 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP);
+                case 3 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.QUEEN);
+                case 4 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING);
+                default -> null;
+            };
+            case 6 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.PAWN);
+            case 1 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.PAWN);
+            case 0 -> switch (col) {
+                case 0, 7 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK);
+                case 1, 6 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT);
+                case 2, 5 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP);
+                case 3 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.QUEEN);
+                case 4 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KING);
+                default -> null;
+            };
+            default -> null;
+        };
     }
 
     private void clearBoard() {

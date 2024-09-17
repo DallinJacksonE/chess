@@ -17,7 +17,19 @@ public class ChessPiece {
     public ChessPiece(ChessGame.TeamColor pieceColor, ChessPiece.PieceType type) {
         this.pieceColor = pieceColor;
         this.pieceType = type;
-        this.myMoves = new PieceMovesCalculator(this);
+        this.myMoves = initializeCalculator();
+
+    }
+
+    private PieceMovesCalculator initializeCalculator() {
+        return switch (getPieceType()) {
+            case KING -> new KingMovesCalculator();
+            case QUEEN -> new QueenMovesCalculator();
+            case BISHOP -> new BishopMovesCalculator();
+            case KNIGHT -> new KnightMovesCalculator();
+            case ROOK -> new RookMovesCalculator();
+            case PAWN -> new PawnMovesCalculator();
+        };
     }
 
     /**

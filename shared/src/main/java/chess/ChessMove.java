@@ -1,7 +1,5 @@
 package chess;
 
-import com.google.gson.Gson;
-
 import java.util.Objects;
 
 /**
@@ -11,8 +9,6 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessMove {
-
-
     private final ChessPosition startPosition;
     private final ChessPosition endPosition;
     private final ChessPiece.PieceType promotionPiece;

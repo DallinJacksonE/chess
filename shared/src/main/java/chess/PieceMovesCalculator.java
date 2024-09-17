@@ -8,42 +8,16 @@ import java.util.*;
  * ChessPiece piece
  * Assigns the right rule calculator to the piece and returns the correct moves calculated
  * */
-public class PieceMovesCalculator {
-    private ChessPiece piece;
-    private PieceMovesCalculator calculator;
+public abstract class PieceMovesCalculator {
+
     protected Collection<ChessMove> validMoves;
     protected ChessPosition currentPosition;
 
-
-    public PieceMovesCalculator(ChessPiece piece) {
-        setPiece(piece);
-    }
-
-    public PieceMovesCalculator() {
+    protected PieceMovesCalculator() {
         // Empty Constructor
     }
 
-    private void setPiece(ChessPiece piece) {
-        this.piece = piece;
-        initializeCalculator();
-    }
-
-    private void initializeCalculator() {
-        switch (this.piece.getPieceType()) {
-            case KING -> this.calculator = new KingMovesCalculator();
-            case QUEEN -> this.calculator = new QueenMovesCalculator();
-            case BISHOP -> this.calculator = new BishopMovesCalculator();
-            case KNIGHT -> this.calculator = new KnightMovesCalculator();
-            case ROOK -> this.calculator = new RookMovesCalculator();
-            case PAWN -> this.calculator = new PawnMovesCalculator();
-            default -> throw new IllegalArgumentException("Invalid piece type: " + this.piece.getPieceType());
-        }
-    }
-
-    public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-        this.currentPosition = myPosition;
-        return calculator.pieceMoves(board, myPosition);
-    }
+    public abstract Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition);
 
     public enum Directions {
         UP,
@@ -177,117 +151,5 @@ public class PieceMovesCalculator {
         ChessMove newMove = new ChessMove(this.currentPosition, end, promotion);
         this.validMoves.add(newMove);
     }
-
-
-    //
-    // ______________________________ Inner classes for Calculating ______________________________
-    //
-
-    private static class PawnMovesCalculator extends PieceMovesCalculator {
-        // this.validMoves is the moves collection to add to
-        // each child class will call their own
-        Set<ChessPiece.PieceType> promotionTypes = new HashSet<>();
-
-        protected PawnMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-            promotionTypes.add(ChessPiece.PieceType.BISHOP);
-            promotionTypes.add(ChessPiece.PieceType.QUEEN);
-            promotionTypes.add(ChessPiece.PieceType.ROOK);
-            promotionTypes.add(ChessPiece.PieceType.KNIGHT);
-        }
-
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-            this.currentPosition = myPosition;
-            pawnMovements(board, myPosition, promotionTypes);
-            return this.validMoves;
-        }
-    }
-
-    private static class KingMovesCalculator extends PieceMovesCalculator {
-        protected KingMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-        }
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-            this.currentPosition = myPosition;
-            for (Directions direction : Directions.values()) {
-                ChessPosition position = checkEdgeOfBoard(myPosition, direction);
-                int checkResult = singleCheck(board, myPosition, direction);
-                if (checkResult == 0 || checkResult == 1) {
-                    this.validMoves.add(new ChessMove(myPosition, position, null));
-                }
-            }
-            return this.validMoves;
-        }
-    }
-
-    private static class KnightMovesCalculator extends PieceMovesCalculator {
-        protected KnightMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-        }
-
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-
-            return this.validMoves;
-        }
-    }
-
-    private static class QueenMovesCalculator extends PieceMovesCalculator {
-        protected QueenMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-
-        }
-
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-            this.currentPosition = myPosition;
-            recursiveCheck(board, myPosition, Directions.UPLEFT);
-            recursiveCheck(board, myPosition, Directions.UPRIGHT);
-            recursiveCheck(board, myPosition, Directions.DOWNLEFT);
-            recursiveCheck(board, myPosition, Directions.DOWNRIGHT);
-            recursiveCheck(board, myPosition, Directions.UP);
-            recursiveCheck(board, myPosition, Directions.DOWN);
-            recursiveCheck(board, myPosition, Directions.LEFT);
-            recursiveCheck(board, myPosition, Directions.RIGHT);
-            return this.validMoves;
-        }
-    }
-
-    private static class BishopMovesCalculator extends PieceMovesCalculator {
-
-        protected BishopMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-
-        }
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-            this.currentPosition = myPosition;
-            recursiveCheck(board, myPosition, Directions.UPLEFT);
-            recursiveCheck(board, myPosition, Directions.UPRIGHT);
-            recursiveCheck(board, myPosition, Directions.DOWNLEFT);
-            recursiveCheck(board, myPosition, Directions.DOWNRIGHT);
-            return this.validMoves;
-        }
-    }
-
-    private static class RookMovesCalculator extends PieceMovesCalculator {
-        protected RookMovesCalculator() {
-            this.validMoves = new ArrayList<>();
-
-        }
-        @Override
-        public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-            this.currentPosition = myPosition;
-            recursiveCheck(board, myPosition, Directions.UP);
-            recursiveCheck(board, myPosition, Directions.DOWN);
-            recursiveCheck(board, myPosition, Directions.LEFT);
-            recursiveCheck(board, myPosition, Directions.RIGHT);
-            return this.validMoves;
-        }
-    }
-
-
 
     }
