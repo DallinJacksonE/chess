@@ -143,7 +143,7 @@ public abstract class PieceMovesCalculator {
         } else if (pieceAtSpot.getTeamColor() != movingPieceColor) {
             return 1; //Enemy spot
         } else {
-            return 2; // Teammate in way/Edge Of Board
+            return 2; // Teammate in way/off board
         }
     }
 
