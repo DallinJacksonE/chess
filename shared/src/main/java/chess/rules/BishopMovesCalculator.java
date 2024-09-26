@@ -3,24 +3,19 @@ package chess.rules;
 import chess.ChessBoard;
 import chess.ChessMove;
 import chess.ChessPosition;
-import chess.PieceMovesCalculator;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
-public class BishopMovesCalculator extends PieceMovesCalculator {
 
-    public BishopMovesCalculator() {
-        this.validMoves = new ArrayList<>();
+public class BishopMovesCalculator extends MoveCalculator {
 
-    }
     @Override
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
         this.currentPosition = myPosition;
-        recursiveCheck(board, myPosition, Directions.UPLEFT);
         recursiveCheck(board, myPosition, Directions.UPRIGHT);
-        recursiveCheck(board, myPosition, Directions.DOWNLEFT);
+        recursiveCheck(board, myPosition, Directions.UPLEFT);
         recursiveCheck(board, myPosition, Directions.DOWNRIGHT);
-        return this.validMoves;
+        recursiveCheck(board, myPosition, Directions.DOWNLEFT);
+        return this.moves;
     }
 }

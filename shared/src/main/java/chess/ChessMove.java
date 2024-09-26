@@ -9,6 +9,7 @@ import java.util.Objects;
  * signature of the existing methods.
  */
 public class ChessMove {
+
     private final ChessPosition startPosition;
     private final ChessPosition endPosition;
     private final ChessPiece.PieceType promotionPiece;
@@ -23,13 +24,15 @@ public class ChessMove {
     /**
      * @return ChessPosition of starting location
      */
-    public ChessPosition getStartPosition() { return startPosition; }
+    public ChessPosition getStartPosition() {
+        return this.startPosition;
+    }
 
     /**
      * @return ChessPosition of ending location
      */
     public ChessPosition getEndPosition() {
-        return endPosition;
+        return this.endPosition;
     }
 
     /**
@@ -39,12 +42,7 @@ public class ChessMove {
      * @return Type of piece to promote a pawn to, or null if no promotion
      */
     public ChessPiece.PieceType getPromotionPiece() {
-        return promotionPiece;
-    }
-
-    @Override
-    public String toString() {
-        return startPosition + "->" + endPosition + "(" + promotionPiece + ")";
+        return this.promotionPiece;
     }
 
     @Override
@@ -60,5 +58,11 @@ public class ChessMove {
     @Override
     public int hashCode() {
         return Objects.hash(startPosition, endPosition, promotionPiece);
+    }
+
+    @Override
+    public String toString() {
+        return startPosition.toString() + "->" + endPosition.toString()
+                + "(" + promotionPiece + ")";
     }
 }

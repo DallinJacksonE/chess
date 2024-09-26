@@ -2,49 +2,60 @@ package chess.rules;
 
 import chess.ChessBoard;
 import chess.ChessMove;
+import chess.ChessPiece;
 import chess.ChessPosition;
-import chess.PieceMovesCalculator;
+import java.util.Collection;
 
-import java.util.*;
-
-public class KnightMovesCalculator extends PieceMovesCalculator {
-    public KnightMovesCalculator() {
-        this.validMoves = new ArrayList<>();
-    }
-
+public class KnightMovesCalculator extends MoveCalculator {
     @Override
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
         this.currentPosition = myPosition;
-        Map<ChessPosition, Integer> startMoves = new HashMap<>();
-        // take the four moves in UP DOWN LEFT RIGHT and then take the diagonal positions
-        ArrayList<Directions> directions = new ArrayList<>(Arrays.asList(Directions.UP, Directions.DOWN,
-                Directions.LEFT, Directions.RIGHT));
-        ArrayList<Directions> upDiagonal = new ArrayList<>(Arrays.asList(Directions.UPLEFT, Directions.UPRIGHT));
-        ArrayList<Directions> downDiagonal = new ArrayList<>(Arrays.asList(Directions.DOWNRIGHT, Directions.DOWNLEFT));
-        ArrayList<Directions> rightDiagonal = new ArrayList<>(Arrays.asList(Directions.UPRIGHT, Directions.DOWNRIGHT));
-        ArrayList<Directions> leftDiagonal = new ArrayList<>(Arrays.asList(Directions.UPLEFT, Directions.DOWNLEFT));
-        for (Directions direction : directions) {
-            ChessPosition forwardOne = checkEdgeOfBoard(myPosition, direction);
-            switch (direction) {
-                case UP -> checkDiagonals(board, forwardOne, upDiagonal);
-                case DOWN -> checkDiagonals(board, forwardOne, downDiagonal);
-                case LEFT -> checkDiagonals(board, forwardOne, leftDiagonal);
-                case RIGHT -> checkDiagonals(board, forwardOne, rightDiagonal);
-                default -> throw new IllegalArgumentException("Illegal first move for Knight.");
-            }
-        }
-        return this.validMoves;
+        knightMoves(board, myPosition);
+        return this.moves;
     }
 
-    private void checkDiagonals(ChessBoard board, ChessPosition position, ArrayList<Directions> toCheck) {
-        if (position == null) {
-            return;
-        }
-        for (Directions direction : toCheck) {
-            ChessPosition finalSpot = checkEdgeOfBoard(position, direction);
-            if (singleCheck(board, position, direction) < 2) {
-                validMoves.add(new ChessMove(this.currentPosition, finalSpot, null));
+    private void knightMoves(ChessBoard board, ChessPosition position) {
+        Directions[] upDiags = new Directions[]{Directions.UPRIGHT, Directions.UPLEFT};
+        Directions[] rightDiags = new Directions[]{Directions.UPRIGHT, Directions.DOWNRIGHT};
+        Directions[] downDiags = new Directions[]{Directions.DOWNRIGHT, Directions.DOWNLEFT};
+        Directions[] leftDiags = new Directions[]{Directions.DOWNLEFT, Directions.UPLEFT};
+
+        Directions[] firstSteps = new Directions[]{Directions.UP, Directions.DOWN, Directions.LEFT, Directions.RIGHT};
+
+        for (Directions direction : firstSteps) {
+
+            // get the position, if null we trim
+            ChessPosition firstStep = getSteppedPosition(this.currentPosition, direction);
+            if (firstStep == null) { continue; }
+
+            Directions[] correctDiags;
+
+            switch (direction) {
+                case UP -> correctDiags = upDiags;
+                case DOWN -> correctDiags = downDiags;
+                case LEFT -> correctDiags = leftDiags;
+                case RIGHT -> correctDiags = rightDiags;
+                default -> {
+                    continue;
+                }
             }
+
+            for (Directions diags : correctDiags) {
+                ChessPosition diagPos = getSteppedPosition(firstStep, diags);
+                if (diagPos != null) {
+                    ChessPiece knight = board.getPiece(this.currentPosition);
+                    ChessPiece attacked = board.getPiece(diagPos);
+                    int ability = moveAbility(knight, attacked);
+                    if (ability < 2) {
+                        ChessMove newMove = new ChessMove(this.currentPosition, diagPos, null);
+                        this.moves.add(newMove);
+                    }
+                }
+
+            }
+            // if empty or enemy, add move
         }
+
+
     }
 }

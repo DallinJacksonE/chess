@@ -1,5 +1,8 @@
 package chess;
+
+import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * A chessboard that can hold and rearrange chess pieces.
@@ -8,10 +11,11 @@ import java.util.Arrays;
  * signature of the existing methods.
  */
 public class ChessBoard {
-    private ChessPiece[][] board;
+
+    private ChessPiece[][] board = new ChessPiece[8][8];
 
     public ChessBoard() {
-        board = new ChessPiece[8][8];
+        //Empty Constructor
     }
 
     /**
@@ -21,7 +25,8 @@ public class ChessBoard {
      * @param piece    the piece to add
      */
     public void addPiece(ChessPosition position, ChessPiece piece) {
-        board[position.getArrayRow()][position.getArrayCol()] = piece;
+        board[position.getArrayRow()][position.getArrayColumn()] = piece;
+
     }
 
     /**
@@ -32,7 +37,7 @@ public class ChessBoard {
      * position
      */
     public ChessPiece getPiece(ChessPosition position) {
-        return board[position.getArrayRow()][position.getArrayCol()];
+        return board[position.getArrayRow()][position.getArrayColumn()];
     }
 
     /**
@@ -40,40 +45,73 @@ public class ChessBoard {
      * (How the game of chess normally starts)
      */
     public void resetBoard() {
-        this.clearBoard();
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board.length; j++) {
-                board[i][j] = setupPiece(i, j);
+        clearBoard();
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                board[i][j] = setPiece(i, j);
             }
         }
     }
 
-    private ChessPiece setupPiece(int row, int col) {
-        return switch (row) {
-            case 7 -> switch (col) {
-                case 0, 7 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK);
-                case 1, 6 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT);
-                case 2, 5 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP);
-                case 3 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.QUEEN);
-                case 4 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING);
-                default -> null;
-            };
-            case 6 -> new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.PAWN);
-            case 1 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.PAWN);
-            case 0 -> switch (col) {
-                case 0, 7 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK);
-                case 1, 6 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT);
-                case 2, 5 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP);
-                case 3 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.QUEEN);
-                case 4 -> new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KING);
-                default -> null;
-            };
-            default -> null;
-        };
+    private void clearBoard() {
+        board = new ChessPiece[8][8];
     }
 
-    private void clearBoard() {
-        this.board = new ChessPiece[8][8];
+    private ChessPiece setPiece(int row, int col) {
+        switch (row) {
+            case 0 -> {
+                switch (col) {
+                    case 0, 7 -> {
+                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.ROOK);
+                    }
+                    case 1, 6 -> {
+                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KNIGHT);
+                    }
+                    case 2, 5 -> {
+                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.BISHOP);
+                    }
+                    case 3 -> {
+                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.QUEEN);
+                    }
+                    case 4 -> {
+                        return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.KING);
+                    }
+                    default -> {return null;}
+                }
+            }
+            case 1 -> {
+                return new ChessPiece(ChessGame.TeamColor.WHITE, ChessPiece.PieceType.PAWN);
+            }
+            case 6 -> {
+                return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.PAWN);
+            }
+            case 7 -> {
+                switch (col) {
+                    case 0, 7 -> {
+                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.ROOK);
+                    }
+                    case 1, 6 -> {
+                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KNIGHT);
+                    }
+                    case 2, 5 -> {
+                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.BISHOP);
+                    }
+                    case 3 -> {
+                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.QUEEN);
+                    }
+                    case 4 -> {
+                        return new ChessPiece(ChessGame.TeamColor.BLACK, ChessPiece.PieceType.KING);
+                    }
+                    default -> {
+                        return null;
+                    }
+
+                }
+            }
+            default -> {
+                return null;
+            }
+        }
     }
 
     @Override
@@ -81,28 +119,18 @@ public class ChessBoard {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ChessBoard that = (ChessBoard) o;
-        return Arrays.deepEquals(board, that.board);
+        return Objects.deepEquals(board, that.board);
     }
 
     @Override
     public int hashCode() {
-        return 17 * Arrays.deepHashCode(board);
+        return Arrays.deepHashCode(board);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("ChessBoard: \n");
-        for (ChessPiece[] row : board) {
-            for (ChessPiece piece : row) {
-                if (piece != null) {
-                    sb.append(piece).append(" ");
-                } else {
-                    sb.append("null ");
-                }
-            }
-            sb.append("\n");
-        }
-        sb.append("\n\n");
-        return sb.toString();
+        return "ChessBoard{" +
+                "board=" + Arrays.toString(board) +
+                '}';
     }
 }
