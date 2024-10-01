@@ -1,6 +1,5 @@
 package chess;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -38,6 +37,17 @@ public class ChessBoard {
      */
     public ChessPiece getPiece(ChessPosition position) {
         return board[position.getArrayRow()][position.getArrayColumn()];
+    }
+
+    public ChessPiece[][] getBoard() {
+        return board;
+    }
+
+    public void makeMove(ChessMove move) {
+        ChessPiece movingPiece = this.getPiece(move.getStartPosition());
+        this.addPiece(move.getEndPosition(), movingPiece);
+        this.addPiece(move.getStartPosition(), null);
+
     }
 
     /**
@@ -129,8 +139,19 @@ public class ChessBoard {
 
     @Override
     public String toString() {
-        return "ChessBoard{" +
-                "board=" + Arrays.toString(board) +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board[i].length; j++) {
+                ChessPiece piece = board[i][j];
+                if (piece != null) {
+                    sb.append(piece.toString());
+                } else {
+                    sb.append("|_|");
+                }
+                sb.append(" ");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }
