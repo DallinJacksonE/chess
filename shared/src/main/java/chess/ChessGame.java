@@ -56,7 +56,9 @@ public class ChessGame {
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
         ChessPiece piece = board.getPiece(startPosition);
-        return piece == null ? null : piece.pieceMoves(board, startPosition);
+        Collection<ChessMove> ruleValid = piece.pieceMoves(board, startPosition);
+
+        return
     }
 
     /**
@@ -73,7 +75,9 @@ public class ChessGame {
                 throw new InvalidMoveException("Cannot move " + board.getPiece(move.getStartPosition()).toString() +
                         ": " + move);
             }
-
+            if (board.getPiece(move.getStartPosition()).getTeamColor() != teamTurn) {
+                throw new InvalidMoveException("It is " + teamTurn + " team turn.");
+            }
 
             //make move
             this.board.makeMove(move);
