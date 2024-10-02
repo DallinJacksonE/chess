@@ -112,39 +112,42 @@ public class ChessGame {
      * @param teamColor which team to check for check
      * @return True if the specified team is in check
      */
-    public boolean isInCheck(TeamColor teamColor) {
-        ChessPosition kingPosition = null;
-        ArrayList<ChessPosition> enemyPositions = new ArrayList<>();
-        // Find king and enemy positions
-        for (int i = 1; i < 9; i++) {
-            for (int j = 1; j < 9; j++) {
-                ChessPosition pos = new ChessPosition(i, j);
-                ChessPiece piece = board.getPiece(pos);
-                if (piece != null) {
-                    if (piece.getPieceType() == ChessPiece.PieceType.KING && piece.getTeamColor() == teamColor) {
-                        kingPosition = pos;
-                    } else if (piece.getTeamColor() != teamColor) {
-                        enemyPositions.add(pos);
-                    }
-                }
+   public boolean isInCheck(TeamColor teamColor) {
+    ChessPosition kingPosition = null;
+    ArrayList<ChessPosition> enemyPositions = new ArrayList<>();
+
+    // Find king and enemy positions
+    for (int i = 1; i < 9; i++) {
+        for (int j = 1; j < 9; j++) {
+            ChessPosition pos = new ChessPosition(i, j);
+            ChessPiece piece = board.getPiece(pos);
+            if (piece == null) continue;
+
+            if (piece.getPieceType() == ChessPiece.PieceType.KING && piece.getTeamColor() == teamColor) {
+                kingPosition = pos;
+            } else if (piece.getTeamColor() != teamColor) {
+                enemyPositions.add(pos);
             }
         }
-        if (kingPosition == null) {
-            return false;
-        }
-        // Add all enemy moves to arrayList
-        Collection<ChessMove> allEnemyMoves = new ArrayList<>();
-        for (ChessPosition enemyPiece : enemyPositions) {
-            allEnemyMoves.addAll(board.getPiece(enemyPiece).pieceMoves(board, enemyPiece));
-        }
-        // If any enemy moves have an end position on the king, return true, else false
-        for (ChessMove enemyMove : allEnemyMoves) {
-            if (enemyMove.getEndPosition().equals(kingPosition)) {
-                return true;
-            }
-        }
-        return false;
     }
+
+    if (kingPosition == null) return false;
+
+    // Add all enemy moves to arrayList
+    Collection<ChessMove> allEnemyMoves = new ArrayList<>();
+    for (ChessPosition enemyPiece : enemyPositions) {
+        allEnemyMoves.addAll(board.getPiece(enemyPiece).pieceMoves(board, enemyPiece));
+    }
+
+    // If any enemy moves have an end position on the king, return true, else false
+    for (ChessMove enemyMove : allEnemyMoves) {
+        if (enemyMove.getEndPosition().equals(kingPosition)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
     /**
      * Determines if the given team is in checkmate
@@ -175,11 +178,10 @@ public class ChessGame {
             for (int j = 1; j < 9; j++) {
                 ChessPosition pos = new ChessPosition(i, j);
                 ChessPiece piece = board.getPiece(pos);
-                if (piece != null) {
-                    if (piece.getTeamColor() == teamColor) {
+                if (piece != null && piece.getTeamColor() == teamColor) {
                         teamMoves.addAll(validMoves(pos));
                     }
-                }
+
             }
         }
         return teamMoves;
