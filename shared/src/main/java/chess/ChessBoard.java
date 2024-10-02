@@ -43,12 +43,19 @@ public class ChessBoard {
         return board;
     }
 
-    public void makeMove(ChessMove move) {
-        ChessPiece movingPiece = this.getPiece(move.getStartPosition());
+public void makeMove(ChessMove move) {
+    ChessPiece movingPiece = this.getPiece(move.getStartPosition());
+    if (movingPiece == null) {
+        return;
+    }
+    if (movingPiece.getPieceType() == ChessPiece.PieceType.PAWN && move.getPromotionPiece() != null) {
+        this.addPiece(move.getEndPosition(), new ChessPiece(movingPiece.getTeamColor(), move.getPromotionPiece()));
+        this.addPiece(move.getStartPosition(), null);
+    } else {
         this.addPiece(move.getEndPosition(), movingPiece);
         this.addPiece(move.getStartPosition(), null);
-
     }
+}
 
     /**
      * Sets the board to the default starting board
@@ -124,6 +131,19 @@ public class ChessBoard {
         }
     }
 
+    public ChessBoard copy() {
+        ChessBoard newBoard = new ChessBoard();
+        newBoard.board = new ChessPiece[8][8];
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                if (this.board[i][j] != null) {
+                    newBoard.board[i][j] = this.board[i][j].copy();
+                }
+            }
+        }
+        return newBoard;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -146,7 +166,7 @@ public class ChessBoard {
                 if (piece != null) {
                     sb.append(piece.toString());
                 } else {
-                    sb.append("|_|");
+                    sb.append("     . ");
                 }
                 sb.append(" ");
             }

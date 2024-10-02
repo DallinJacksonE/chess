@@ -34,6 +34,10 @@ public class ChessPiece {
         };
     }
 
+    public ChessPiece copy() {
+        return new ChessPiece(this.pieceColor, this.type);
+    }
+
     /**
      * The various different chess piece options
      */
