@@ -1,6 +1,15 @@
 package dataaccess;
 
+import model.*;
+import java.util.Map;
+
 public class SimpleLocalDataBase implements DataInterface {
+
+    Map<String, AuthData> AuthTokens;
+    Map<Integer, GameData> GameData;
+    Map<String, UserData> UserData;
+
+
     @Override
     public void clear() throws DataAccessException {
 

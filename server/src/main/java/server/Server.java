@@ -1,6 +1,7 @@
 package server;
 
 import spark.*;
+import com.google.gson.*;
 
 public class Server {
 
@@ -16,6 +17,7 @@ public class Server {
         Spark.delete("/db", (req, res) -> {
             res.type(contentType);
             // Call service here, return message from service
+            // write function to catch errors coming from service and data access to turn the errors to HTTPS status
             return "{\"message\":\"Clear Called\"}";
         });
 
@@ -42,9 +44,9 @@ public class Server {
 
         // REGISTER NEW USER
         Spark.post("/user", (req, res) -> {
-           res.type(contentType);
 
-           return  "{\"message\":\"Register User called\"}";
+            res.type(contentType);
+            return  "{\"message\":\"Register User called\"}";
         });
 
         // LOGIN
