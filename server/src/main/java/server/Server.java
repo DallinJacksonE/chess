@@ -1,5 +1,8 @@
 package server;
 
+import dataaccess.DataInterface;
+import dataaccess.SimpleLocalDataBase;
+import service.RegisterService;
 import spark.*;
 import com.google.gson.*;
 
@@ -9,6 +12,8 @@ public class Server {
         Spark.port(desiredPort);
 
         Spark.staticFiles.location("web");
+
+        DataInterface db = new SimpleLocalDataBase();
 
         // Register your endpoints and handle exceptions here. This is the handler
         String contentType = "application/json";
@@ -44,9 +49,22 @@ public class Server {
 
         // REGISTER NEW USER
         Spark.post("/user", (req, res) -> {
-
             res.type(contentType);
-            return  "{\"message\":\"Register User called\"}";
+
+
+            try {
+                // Your logic here
+                // If an error occurs, throw an exception
+
+                JsonObject jsonObject = JsonParser.parseString(req.body()).getAsJsonObject();
+                RegisterService registrar = new RegisterService(jsonObject);
+
+                return "{\"message\":\"User registered successfully\"}";
+
+            } catch (Exception e) {
+                res.status(500);
+                return "{\"message\":\"Internal Server Error\"}";
+            }
         });
 
         // LOGIN
@@ -66,6 +84,10 @@ public class Server {
 
         Spark.awaitInitialization();
         return Spark.port();
+    }
+
+    private void catchErrors() {
+
     }
 
     public void stop() {
