@@ -6,7 +6,7 @@ import server.AuthenticationException;
 
 import java.util.Objects;
 
-public class RegisterService implements Service{
+public class RegisterService implements UserService {
 
     private UserData data;
     private DataInterface db;
@@ -17,13 +17,16 @@ public class RegisterService implements Service{
     }
 
     @Override
-    public void runService() throws DataAccessException, AuthenticationException {
+    public UserData runService() throws DataAccessException, AuthenticationException {
         try {
-            db.createUser(this.data);
+            return db.createUser(this.data);
         } catch (DataAccessException e) {
             if (Objects.equals(e.toString(), "User already exists.")) {
                 throw new AuthenticationException("Error: already taken");
+            } else if (Objects.equals(e.toString(), "User does not exist")) {
+                throw new DataAccessException("Database down");
             }
         }
+        return null;
     }
 }

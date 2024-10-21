@@ -1,10 +1,14 @@
 package server;
 
+import dataaccess.DataAccessException;
 import dataaccess.DataInterface;
 import dataaccess.SimpleLocalDataBase;
+import model.UserData;
 import service.RegisterService;
 import spark.*;
 import com.google.gson.*;
+
+import javax.xml.crypto.Data;
 
 public class Server {
 
@@ -12,7 +16,7 @@ public class Server {
         Spark.port(desiredPort);
 
         Spark.staticFiles.location("web");
-
+        var serializer = new Gson();
         DataInterface db = new SimpleLocalDataBase();
 
         // Register your endpoints and handle exceptions here. This is the handler
@@ -51,19 +55,28 @@ public class Server {
         Spark.post("/user", (req, res) -> {
             res.type(contentType);
 
-
             try {
                 // Your logic here
                 // If an error occurs, throw an exception
+                var data = serializer.fromJson(req.body(), UserData.class);
 
-                JsonObject jsonObject = JsonParser.parseString(req.body()).getAsJsonObject();
-                RegisterService registrar = new RegisterService(jsonObject);
+                RegisterService reg = new RegisterService(db, data);
+                reg.runService();
 
+                res.status(200);
+                res.body("");
                 return "{\"message\":\"User registered successfully\"}";
 
+            } catch (JsonSyntaxException e) {
+                IntMessagePair results = new IntMessagePair(400, "bad request");
+                res.status(results.errorCode());
+                res.body(results.message());
+                return res;
             } catch (Exception e) {
-                res.status(500);
-                return "{\"message\":\"Internal Server Error\"}";
+                IntMessagePair results = interpretError(e);
+                res.status(results.errorCode());
+                res.body(results.message());
+                return res;
             }
         });
 
@@ -86,8 +99,13 @@ public class Server {
         return Spark.port();
     }
 
-    private void catchErrors() {
-
+    private IntMessagePair interpretError(Exception exception) {
+        return switch (exception.getMessage()) {
+            case "Error: already taken" -> new IntMessagePair(403, exception.getMessage());
+            case "Error: bad request" -> new IntMessagePair(400, exception.getMessage());
+            case "Error: unauthorized" -> new IntMessagePair(401, exception.getMessage());
+            default -> new IntMessagePair(500, "Error" + exception.getMessage());
+        };
     }
 
     public void stop() {
