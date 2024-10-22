@@ -1,111 +1,93 @@
 package server;
-
-import dataaccess.DataAccessException;
+import service.Service;
+import chess.exception.ResponseException;
 import dataaccess.DataInterface;
 import dataaccess.SimpleLocalDataBase;
 import model.UserData;
-import service.RegisterService;
 import spark.*;
 import com.google.gson.*;
 
-import javax.xml.crypto.Data;
+import java.util.Map;
+
 
 public class Server {
+
+
+    private final DataInterface db = new SimpleLocalDataBase();
+    private final Service service = new Service(db);
 
     public int run(int desiredPort) {
         Spark.port(desiredPort);
 
         Spark.staticFiles.location("web");
-        var serializer = new Gson();
-        DataInterface db = new SimpleLocalDataBase();
-
-        // Register your endpoints and handle exceptions here. This is the handler
-        String contentType = "application/json";
 
         // CLEAR
-        Spark.delete("/db", (req, res) -> {
-            res.type(contentType);
-            // Call service here, return message from service
-            // write function to catch errors coming from service and data access to turn the errors to HTTPS status
-            return "{\"message\":\"Clear Called\"}";
-        });
-
+        Spark.delete("/db", this::clear);
         // LIST GAMES
-        Spark.get("/game", (req, res) -> {
-            res.type(contentType);
-            // Call service here, return message from service
-            return "{\"message\":\"Get games list called\"}";
-        });
-
+        Spark.get("/game", this::listGames);
         // CREATE GAME
-        Spark.post("/game", (req, res) -> {
-            res.type(contentType);
-            // Call service here, return message from service
-            return "{\"message\":\"Create game called\"}";
-        });
-
+        Spark.post("/game", this::createGame);
         // JOIN GAME
-        Spark.put("/game", (req, res) -> {
-            res.type(contentType);
-            // Call service here, return message from service
-            return "{\"message\":\"Join game called\"}";
-        });
-
+        Spark.put("/game", this::joinGame);
         // REGISTER NEW USER
-        Spark.post("/user", (req, res) -> {
-            res.type(contentType);
-
-            try {
-                // Your logic here
-                // If an error occurs, throw an exception
-                var data = serializer.fromJson(req.body(), UserData.class);
-
-                RegisterService reg = new RegisterService(db, data);
-                reg.runService();
-
-                res.status(200);
-                res.body("");
-                return "{\"message\":\"User registered successfully\"}";
-
-            } catch (JsonSyntaxException e) {
-                IntMessagePair results = new IntMessagePair(400, "bad request");
-                res.status(results.errorCode());
-                res.body(results.message());
-                return res;
-            } catch (Exception e) {
-                IntMessagePair results = interpretError(e);
-                res.status(results.errorCode());
-                res.body(results.message());
-                return res;
-            }
-        });
-
+        Spark.post("/user", this::register);
         // LOGIN
-        Spark.post("/login", (req, res) -> {
-            res.type(contentType);
-            return  "{\"message\":\"Login called\"}";
-        });
-
+        Spark.post("/login", this::login);
         // LOGOUT
-        Spark.delete("/session", (req, res) -> {
-            res.type(contentType);
+        Spark.delete("/session", this::logout);
 
-            return "{\"message\":\"Logout Called\"}";
-        });
-        //This line initializes the server and can be removed once you have a functioning endpoint 
+        Spark.exception(ResponseException.class, this::exceptionHandler);
+
+        //This line initializes the server and can be removed once you have a functioning endpoint
         Spark.init();
-
         Spark.awaitInitialization();
         return Spark.port();
     }
 
-    private IntMessagePair interpretError(Exception exception) {
-        return switch (exception.getMessage()) {
-            case "Error: already taken" -> new IntMessagePair(403, exception.getMessage());
-            case "Error: bad request" -> new IntMessagePair(400, exception.getMessage());
-            case "Error: unauthorized" -> new IntMessagePair(401, exception.getMessage());
-            default -> new IntMessagePair(500, "Error" + exception.getMessage());
-        };
+    private Object clear(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        service.clear();
+        return "{}";
+    }
+
+    private Object listGames(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        return "{}";
+    }
+
+    private Object createGame(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        return "{}";
+    }
+
+    private Object joinGame(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        return "{}";
+    }
+
+    private Object register(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        var newUser = new Gson().fromJson(req.body(), UserData.class);
+
+        String token = service.register(newUser);
+        return new Gson().toJson("username : " + newUser.userName() + ", authToken: " + token);
+    }
+
+
+    private Object login(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        return "{}";
+    }
+
+    private Object logout(Request req, Response res) throws ResponseException {
+        res.type("application/json");
+        return "{}";
+    }
+
+    private void exceptionHandler(ResponseException ex, Request req, Response res) {
+        res.status(ex.StatusCode());
+        res.type("application/json");
+        res.body(new Gson().toJson(ex.getMessage()));
     }
 
     public void stop() {

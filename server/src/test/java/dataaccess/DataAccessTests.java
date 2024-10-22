@@ -1,4 +1,4 @@
-package java.dataaccess;
+package dataaccess;
 
 public class DataAccessTests {
 
