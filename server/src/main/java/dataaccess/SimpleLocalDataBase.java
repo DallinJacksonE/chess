@@ -2,12 +2,14 @@ package dataaccess;
 
 import model.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SimpleLocalDataBase implements DataInterface {
 
-    private final HashMap<String, AuthData> authTokens = new HashMap<>();
+    private final HashMap<String, AuthData> authTokens = new HashMap<>(); // authToken : authData
     private final HashMap<Integer, GameData> gameData = new HashMap<>(); // gameID : gameData
     private final HashMap<String, UserData> userData = new HashMap<>(); // username : userData
 
@@ -20,8 +22,8 @@ public class SimpleLocalDataBase implements DataInterface {
 
     @Override
     public void createUser(UserData newUser) throws DataAccessException{
-        userData.put(newUser.userName(), newUser);
-        if (getUser(newUser.userName()) != newUser) {
+        userData.put(newUser.username(), newUser);
+        if (getUser(newUser.username()) != newUser) {
             throw new DataAccessException(500, "error: database error");
         }
     }
@@ -32,9 +34,9 @@ public class SimpleLocalDataBase implements DataInterface {
     }
 
     @Override
-    public GameData createGame(GameData newGameData) {
+    public Integer createGame(GameData newGameData) {
         gameData.put(newGameData.gameID(), newGameData);
-        return getGame(newGameData.gameID());
+        return newGameData.gameID();
     }
 
     @Override
@@ -43,8 +45,13 @@ public class SimpleLocalDataBase implements DataInterface {
     }
 
     @Override
-    public Map<Integer, GameData> listGames() {
-        return gameData;
+    public ArrayList<GameData> listGames() {
+        ArrayList<GameData> games = new ArrayList<>();
+        for (Map.Entry<Integer, GameData> entry : gameData.entrySet()) {
+            games.add(entry.getValue());
+        }
+
+        return games;
     }
 
     @Override
@@ -53,11 +60,11 @@ public class SimpleLocalDataBase implements DataInterface {
     }
 
     @Override
-    public void createAuth(String userName, AuthData authToken) throws DataAccessException {
-        if (authTokens.containsKey(userName)) {
+    public void createAuth(String authToken, AuthData data) throws DataAccessException {
+        if (authTokens.containsKey(authToken)) {
             throw new DataAccessException(401, "error: auth token already exists");
         }
-        authTokens.put(userName, authToken);
+        authTokens.put(authToken, data);
     }
 
     @Override
@@ -66,9 +73,8 @@ public class SimpleLocalDataBase implements DataInterface {
     }
 
     @Override
-    public void deleteAuth(String userName) {
-        authTokens.remove(userName);
+    public void deleteAuth(String authToken) {
+        authTokens.remove(authToken);
     }
-
 
 }

@@ -2,6 +2,8 @@ package dataaccess;
 
 import model.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public interface DataInterface {
@@ -11,11 +13,11 @@ public interface DataInterface {
 
     UserData getUser(String userName) throws DataAccessException;
 
-    GameData createGame(GameData gameData) throws DataAccessException;
+    Integer createGame(GameData gameData) throws DataAccessException;
 
     GameData getGame(int gameID) throws DataAccessException;
 
-    Map<Integer, GameData> listGames() throws DataAccessException;
+    ArrayList<GameData> listGames() throws DataAccessException;
 
     void updateGame(int gameID, GameData newGameData) throws DataAccessException;
 
@@ -23,5 +25,5 @@ public interface DataInterface {
 
     AuthData getAuth(String authToken) throws DataAccessException;
 
-    void deleteAuth(String userName) throws DataAccessException;
+    void deleteAuth(String authToken) throws DataAccessException;
 }
