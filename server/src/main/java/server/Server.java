@@ -15,32 +15,33 @@ import java.util.Map;
 
 public class Server {
 
-    private final String responseType = "application/json";
+    private static final String RESPONSE_TYPE = "application/json";
+    private static final String USERNAME = "username";
+    private static final String AUTH_HEADER = "Authorization";
     private final DataInterface db = new SimpleLocalDataBase();
     private final Service service = new Service(db);
 
     public int run(int desiredPort) {
-        Spark.port(desiredPort);
 
+        // Constants
+        String dbEndpoint = "/db";
+        String gameEndpoint = "/game";
+        String userEndpoint = "/user";
+        String sessionEndpoint = "/session";
+
+        Spark.port(desiredPort);
         Spark.staticFiles.location("web");
 
+        // API CALLS
+        Spark.delete(dbEndpoint, this::clear);
+        Spark.get(gameEndpoint, this::listGames);
+        Spark.post(gameEndpoint, this::createGame);
+        Spark.put(gameEndpoint, this::joinGame);
+        Spark.post(userEndpoint, this::register);
+        Spark.post(sessionEndpoint, this::login);
+        Spark.delete(sessionEndpoint, this::logout);
 
-
-        // CLEAR
-        Spark.delete("/db", this::clear);
-        // LIST GAMES
-        Spark.get("/game", this::listGames);
-        // CREATE GAME
-        Spark.post("/game", this::createGame);
-        // JOIN GAME
-        Spark.put("/game", this::joinGame);
-        // REGISTER NEW USER
-        Spark.post("/user", this::register);
-        // LOGIN
-        Spark.post("/session", this::login);
-        // LOGOUT
-        Spark.delete("/session", this::logout);
-
+        // Exception handler
         Spark.exception(ResponseException.class, this::exceptionHandler);
 
         //This line initializes the server and can be removed once you have a functioning endpoint
@@ -49,34 +50,38 @@ public class Server {
         return Spark.port();
     }
 
+
     private Object clear(Request req, Response res) throws ResponseException {
-        res.type(responseType);
+        res.type(RESPONSE_TYPE);
         service.clear();
         return "";
     }
 
+
     private Object listGames(Request req, Response res) throws ResponseException {
-        res.type(responseType);
-        String authToken = req.headers("Authorization");
+        res.type(RESPONSE_TYPE);
+        String authToken = req.headers(AUTH_HEADER);
         ArrayList<GameData> games = (ArrayList<GameData>) service.getGames(authToken);
         return new Gson().toJson(Map.of("games", games));
     }
 
+
     private Object createGame(Request req, Response res) throws ResponseException {
-        res.type(responseType);
-        String authToken = req.headers("Authorization");
-        Map<String, String> requestData = new Gson().fromJson(req.body(), Map.class);
-        var gameName = requestData.get("gameName");
-        Integer gameID = service.createGame(authToken, gameName);
+        res.type(RESPONSE_TYPE);
+        String authToken = req.headers(AUTH_HEADER);
+        JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
+        var gameName = body.get("gameName");
+        Integer gameID = service.createGame(authToken, gameName.getAsString());
         if (gameID == 0) {
             throw new DataAccessException(500, "issue with db and game creation");
         }
         return new Gson().toJson(Map.of("gameID", gameID));
     }
 
+
     private Object joinGame(Request req, Response res) throws ResponseException {
-        res.type(responseType);
-        String authToken = req.headers("Authorization");
+        res.type(RESPONSE_TYPE);
+        String authToken = req.headers(AUTH_HEADER);
         JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
 
         JsonElement teamColorRequest = body.get("playerColor");
@@ -91,25 +96,25 @@ public class Server {
     }
 
     private Object register(Request req, Response res) throws ResponseException {
-        res.type(responseType);
+        res.type(RESPONSE_TYPE);
         var newUser = new Gson().fromJson(req.body(), UserData.class);
         String token = service.register(newUser);
-        return new Gson().toJson(Map.of("username", newUser.username(), "authToken", token));
+        return new Gson().toJson(Map.of(USERNAME, newUser.username(), "authToken", token));
     }
 
     private Object login(Request req, Response res) throws ResponseException {
-        res.type(responseType);
-        Map<String, String> requestData = new Gson().fromJson(req.body(), Map.class);
-        var username = requestData.get("username");
-        var password = requestData.get("password");
-        String token = service.login(username, password);
+        res.type(RESPONSE_TYPE);
+        JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
+        var username = body.get(USERNAME);
+        var password = body.get("password");
+        String token = service.login(username.getAsString(), password.getAsString());
         res.status(200);
-        return new Gson().toJson(Map.of("username", username, "authToken", token));
+        return new Gson().toJson(Map.of(USERNAME, username, "authToken", token));
     }
 
     private Object logout(Request req, Response res) throws ResponseException {
-        res.type(responseType);
-        String authorizationHeader = req.headers("Authorization");
+        res.type(RESPONSE_TYPE);
+        String authorizationHeader = req.headers(AUTH_HEADER);
         // Check if the Authorization header is present
         if (authorizationHeader == null || authorizationHeader.isEmpty()) {
             throw new AuthenticationException(401, "Authorization header is missing");
@@ -122,7 +127,7 @@ public class Server {
 
     private void exceptionHandler(ResponseException ex, Request req, Response res) {
         res.status(ex.StatusCode());
-        res.type(responseType);
+        res.type(RESPONSE_TYPE);
         res.body(new Gson().toJson(Map.of("message", ex.getMessage())));
     }
 

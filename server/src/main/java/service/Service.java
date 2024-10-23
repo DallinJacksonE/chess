@@ -13,18 +13,23 @@ import java.util.*;
 public class Service {
 
     DataInterface db;
+    private final Random random = new Random();
+
 
     public Service(DataInterface db) {
         this.db = db;
     }
 
+
     public static String generateToken() {
         return UUID.randomUUID().toString();
     }
 
+
     public void clear() throws DataAccessException {
         db.clear();
     }
+
 
     public String register(UserData userData) throws ResponseException {
         if (userData.username() == null || userData.password() == null || userData.email() == null) {
@@ -41,6 +46,7 @@ public class Service {
         return token;
     }
 
+
     public String login(String username, String password) throws ResponseException {
         if (username == null || password == null) {
             throw new BadRequestError();
@@ -53,13 +59,14 @@ public class Service {
             throw new AuthenticationException(401, "error: invalid credentials");
         }
 
-        //make new auth token and authdata
+        //make new auth token and AuthData record
         String newToken = generateToken();
         AuthData newAuth = new AuthData(newToken, username);
         db.createAuth(newToken, newAuth);
 
         return newToken;
     }
+
 
     public void logout(String token) throws ResponseException {
         if (Boolean.TRUE.equals(authorize(token))) {
@@ -70,12 +77,14 @@ public class Service {
         }
     }
 
+
     public List<GameData> getGames(String token) throws ResponseException {
         if (Boolean.TRUE.equals(authorize(token))) {
             return db.listGames();
         }
         return new ArrayList<>();
     }
+
 
     public Integer createGame(String token, String gameName) throws ResponseException {
         if (Boolean.TRUE.equals(authorize(token))) {
@@ -85,9 +94,9 @@ public class Service {
             GameData newGame = new GameData(newGameID(), null, null, gameName, new ChessGame());
             return db.createGame(newGame);
         }
-
         return 0;
     }
+
 
     public void joinGame(String authToken, String requestedColor, int gameID) throws ResponseException {
         authorize(authToken);
@@ -108,9 +117,9 @@ public class Service {
         } else {
             throw new AuthenticationException(403, "error: already taken");
         }
-
         db.updateGame(updatedGame.gameID(), updatedGame);
     }
+
 
     public Boolean authorize(String token) throws ResponseException {
         if (db.getAuth(token) == null) {
@@ -120,8 +129,9 @@ public class Service {
         return Boolean.TRUE;
     }
 
+
     public int newGameID() {
-        Random random = new Random();
         return 1000 + random.nextInt(9000);
     }
+
 }
