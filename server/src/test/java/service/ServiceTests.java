@@ -1,6 +1,5 @@
 package service;
 
-
 import chess.exception.ResponseException;
 import dataaccess.DataInterface;
 import dataaccess.SimpleLocalDataBase;
@@ -8,8 +7,6 @@ import model.GameData;
 import model.UserData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.lang.module.ResolutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 

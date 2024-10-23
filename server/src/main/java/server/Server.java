@@ -1,4 +1,5 @@
 package server;
+
 import dataaccess.DataAccessException;
 import service.AuthenticationException;
 import service.Service;
@@ -126,7 +127,7 @@ public class Server {
     }
 
     private void exceptionHandler(ResponseException ex, Request req, Response res) {
-        res.status(ex.StatusCode());
+        res.status(ex.statusCode());
         res.type(RESPONSE_TYPE);
         res.body(new Gson().toJson(Map.of("message", ex.getMessage())));
     }

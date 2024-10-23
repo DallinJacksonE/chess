@@ -121,7 +121,9 @@ public class ChessGame {
         for (int j = 1; j < 9; j++) {
             ChessPosition pos = new ChessPosition(i, j);
             ChessPiece piece = board.getPiece(pos);
-            if (piece == null) continue;
+            if (piece == null) {
+                continue;
+            }
 
             if (piece.getPieceType() == ChessPiece.PieceType.KING && piece.getTeamColor() == teamColor) {
                 kingPosition = pos;
@@ -131,7 +133,9 @@ public class ChessGame {
         }
     }
 
-    if (kingPosition == null) return false;
+    if (kingPosition == null) {
+        return false;
+    }
 
     // Add all enemy moves to arrayList
     Collection<ChessMove> allEnemyMoves = new ArrayList<>();
