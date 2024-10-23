@@ -77,13 +77,16 @@ public class Server {
     private Object joinGame(Request req, Response res) throws ResponseException {
         res.type(responseType);
         String authToken = req.headers("Authorization");
-        Map<String, String> requestData = new Gson().fromJson(req.body(), Map.class);
-        var teamColorRequest = requestData.get("playerColor");
-        String gameID = requestData.get("gameID");
-        if (teamColorRequest == null || gameID == null) {
+        JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
+
+        JsonElement teamColorRequest = body.get("playerColor");
+        JsonElement gameID = body.get("gameID");
+
+        if (teamColorRequest == null || gameID == null || teamColorRequest.getAsString().isEmpty()) {
             throw new BadRequestError();
         }
-        service.joinGame(authToken, teamColorRequest, gameID);
+
+        service.joinGame(authToken, teamColorRequest.getAsString(), gameID.getAsInt());
         return "{}";
     }
 

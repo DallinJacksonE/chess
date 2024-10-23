@@ -79,6 +79,9 @@ public class Service {
 
     public Integer createGame(String token, String gameName) throws ResponseException {
         if (Boolean.TRUE.equals(authorize(token))) {
+            if (gameName.isEmpty()) {
+                throw new ResponseException(400, "error: bad request");
+            }
             GameData newGame = new GameData(newGameID(), null, null, gameName, new ChessGame());
             return db.createGame(newGame);
         }
@@ -86,12 +89,11 @@ public class Service {
         return 0;
     }
 
-    public void joinGame(String authToken, String requestedColor, String gameID) throws ResponseException {
+    public void joinGame(String authToken, String requestedColor, int gameID) throws ResponseException {
         authorize(authToken);
-        double gameDoubleID = Double.parseDouble(gameID);
-        int gameIntID = (int) gameDoubleID;
+
         var playerName = db.getAuth(authToken).username();
-        GameData requestedGame = db.getGame(gameIntID);
+        GameData requestedGame = db.getGame(gameID);
         GameData updatedGame;
         if (requestedGame == null) {
             throw new DataAccessException(401, "error: game does not exist");
