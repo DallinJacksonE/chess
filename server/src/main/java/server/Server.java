@@ -1,11 +1,12 @@
 package server;
 
 import dataaccess.DataAccessException;
+import dataaccess.MySQLDataBase;
 import service.AuthenticationException;
 import service.Service;
 import chess.exception.ResponseException;
 import dataaccess.DataInterface;
-import dataaccess.SimpleLocalDataBase;
+import dataaccess.*;
 import model.*;
 import spark.*;
 import com.google.gson.*;
@@ -19,8 +20,20 @@ public class Server {
     private static final String RESPONSE_TYPE = "application/json";
     private static final String USERNAME = "username";
     private static final String AUTH_HEADER = "Authorization";
-    private final DataInterface db = new SimpleLocalDataBase();
-    private final Service service = new Service(db);
+    private DataInterface db;
+    private final Service service;
+
+    public Server() {
+        try {
+            db = new MySQLDataBase();
+            System.out.println("Using MYSQL");
+        } catch (DataAccessException e) {
+            db = new SimpleLocalDataBase();
+            System.out.println("Using Local: " + e.getMessage());
+        }
+
+        service = new Service(db);
+    }
 
     public int run(int desiredPort) {
 
