@@ -5,6 +5,7 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 
+import javax.xml.crypto.Data;
 import java.util.ArrayList;
 
 import java.sql.*;
@@ -20,7 +21,15 @@ public class MySQLDataBase implements DataInterface {
 
     @Override
     public void clear() throws DataAccessException {
+        String[] queries = {
+                "TRUNCATE users",
+                "TRUNCATE games",
+                "TRUNCATE tokens"
+        };
 
+        for (String query : queries) {
+            executeUpdate(query);
+        }
     }
 
     @Override
@@ -33,6 +42,19 @@ public class MySQLDataBase implements DataInterface {
 
     @Override
     public UserData getUser(String userName) throws DataAccessException {
+        try (var conn = DatabaseManager.getConnection()) {
+            var statement = "SELECT username, json FROM users";
+            try (var ps = conn.prepareStatement(statement)) {
+
+                try (var rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return readUser(rs);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new DataAccessException(500, String.format("Unable to read data: %s", e.getMessage()));
+        }
         return null;
     }
 
@@ -69,6 +91,21 @@ public class MySQLDataBase implements DataInterface {
     @Override
     public void deleteAuth(String authToken) throws DataAccessException {
 
+    }
+
+    private UserData readUser(ResultSet rs) throws SQLException {
+        var json = rs.getString("json");
+        return new Gson().fromJson(json, UserData.class);
+    }
+
+    private GameData readGame(ResultSet rs) throws SQLException {
+        var json = rs.getString("json");
+        return new Gson().fromJson(json, GameData.class);
+    }
+
+    private AuthData readAuth(ResultSet rs) throws SQLException {
+        var json = rs.getString("json");
+        return new Gson().fromJson(json, AuthData.class);
     }
 
     private int executeUpdate(String statement, Object... params) throws DataAccessException {
