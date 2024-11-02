@@ -1,23 +1,12 @@
 package dataaccess;
 
 import chess.ChessGame;
-import chess.rules.MoveCalculator;
 import com.google.gson.Gson;
-import com.google.gson.InstanceCreator;
-import com.google.gson.internal.LinkedTreeMap;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-import com.google.gson.InstanceCreator;
-import chess.rules.MoveCalculator;
-
-import javax.xml.crypto.Data;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-
 import java.sql.*;
-import java.util.Map;
-
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 import static java.sql.Types.NULL;
 
