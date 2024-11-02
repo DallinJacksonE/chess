@@ -45,7 +45,7 @@ class DataAccessTests {
     @Test
     void gameBoardConsistency() throws ResponseException {
         ChessGame newChessGame = new ChessGame();
-        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
         db.createGame(newGame);
         GameData recoveredGame = db.getGame(1111);
         assertEquals(newChessGame.getBoard(), recoveredGame.game().getBoard());
@@ -100,13 +100,13 @@ class DataAccessTests {
     @Test
     void listGamesWorks() throws DataAccessException{
         ChessGame newChessGame = new ChessGame();
-        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
         db.createGame(newGame);
         ChessGame anotherChessGame = new ChessGame();
-        GameData newGame2 = new GameData(2222, "tom", "bomberdill", "treesnack", anotherChessGame);
+        GameData newGame2 = new GameData(2222, "tom", "bomber dill", "tree snack", anotherChessGame);
         db.createGame(newGame2);
         ChessGame game3 = new ChessGame();
-        GameData newGame3 = new GameData(4444, "paul", "Maud'Dib", "Dune", game3);
+        GameData newGame3 = new GameData(4444, "paul", "MaudDib", "Dune", game3);
         db.createGame(newGame3);
         assertEquals(3, db.listGames().size());
     }
@@ -139,16 +139,16 @@ class DataAccessTests {
     @Test
     void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
         ChessGame newChessGame = new ChessGame();
-        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
         db.createGame(newGame);
         ChessGame anotherChessGame = new ChessGame();
         anotherChessGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
-        GameData newGame2 = new GameData(2222, "tom", "bomberdill", "treesnack", anotherChessGame);
+        GameData newGame2 = new GameData(2222, "tom", "bomber dill", "tree snack", anotherChessGame);
         db.createGame(newGame2);
         ChessBoard board1 = newChessGame.getBoard();
         ChessBoard board2 = anotherChessGame.getBoard();
         assertNotEquals(board2, board1);
-        db.updateGame(1111, new GameData(1111, "username", "bob", "IwillWin", anotherChessGame));
+        db.updateGame(1111, new GameData(1111, "username", "bob", "WillWin", anotherChessGame));
         board1 = db.getGame(1111).game().getBoard();
         board2 = db.getGame(2222).game().getBoard();
         assertEquals(board2, board1);
