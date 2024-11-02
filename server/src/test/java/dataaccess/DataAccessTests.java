@@ -3,6 +3,7 @@ package dataaccess;
 import chess.ChessGame;
 import chess.exception.ResponseException;
 
+import model.AuthData;
 import model.GameData;
 import model.UserData;
 
@@ -73,66 +74,41 @@ class DataAccessTests {
     }
 
     @Test
-    void loginToEmptyDB() throws ResponseException {
-        service.clear();
-        assertThrows(ResponseException.class, () -> service.login("username", "password"));
+    void getValidAuthWorks() throws ResponseException {
+        AuthData returnedAuthData = db.getAuth(accessToken);
+        assertEquals("username", returnedAuthData.username());
     }
 
     @Test
-    void deleteAuthRemovesTokenAfterLogout() throws ResponseException {
+    void getAuthReturnsNull() throws ResponseException {
         var token = service.login("username", "password");
         service.logout(token);
         assertNull(db.getAuth(token));
     }
 
     @Test
-    void getGames() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
-        assertDoesNotThrow(() -> service.getGames(token));
+    void deleteAuthRemovesTokenAfterLogout() throws ResponseException {
+        db.deleteAuth(accessToken);
+        assertNull(db.getAuth(accessToken));
     }
 
     @Test
-    void getGamesWithBadToken() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
-        service.logout(token);
-        var newToken = service.login("username", "password");
-        service.getGames(newToken);
-        assertThrows(ResponseException.class, () -> service.getGames(token));
+    void listGamesEmptyErrorHandled() {
+        assertDoesNotThrow(() -> db.listGames());
     }
 
     @Test
-    void makeGame() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
-        int gameID = service.createGame(token, "newGame");
-    }
-
-    @Test
-    void makeGameWithEmptyName() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
-        assertThrows(ResponseException.class, () -> service.createGame(token, ""));
-    }
-
-    @Test
-    void joinGame() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
-        int gameID = service.createGame(token, "newGame");
-
-        service.joinGame(token, "WHITE", gameID);
-
-        GameData gameData = db.getGame(gameID);
-
-        assertEquals(gameData.whiteUsername(), userData.username());
-
+    void listGamesWorks() throws DataAccessException{
+        ChessGame newChessGame = new ChessGame();
+        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        db.createGame(newGame);
+        ChessGame anotherChessGame = new ChessGame();
+        GameData newGame2 = new GameData(2222, "tom", "bomberdill", "treesnack", anotherChessGame);
+        db.createGame(newGame2);
+        ChessGame game3 = new ChessGame();
+        GameData newGame3 = new GameData(4444, "paul", "Maud'Dib", "Dune", game3);
+        db.createGame(newGame3);
+        assertEquals(3, db.listGames().size());
     }
 
     @Test
