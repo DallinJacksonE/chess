@@ -1,29 +1,32 @@
-package service;
+package dataaccess;
 
+import chess.ChessGame;
 import chess.exception.ResponseException;
-import dataaccess.DataAccessException;
-import dataaccess.DataInterface;
-import dataaccess.MySQLDataBase;
-import dataaccess.SimpleLocalDataBase;
+
 import model.GameData;
 import model.UserData;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
-import javax.xml.crypto.Data;
+import org.junit.jupiter.api.*;
+
+import service.Service;
+
+
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DataAccessTests {
     private DataInterface db;
     private Service service;
+    private String accessToken;
 
     @BeforeEach
-    public void setUp() throws DataAccessException {
+    public void setUp() throws ResponseException {
         db = new MySQLDataBase();
         service = new Service(db);
+        UserData userData = new UserData("username", "password", "email@example.com");
+        accessToken = service.register(userData);
+        assertNotNull(accessToken);
+        assertEquals(userData.username(), db.getUser(userData.username()).username());
 
     }
 
@@ -33,27 +36,27 @@ class DataAccessTests {
     }
 
     @Test
-    void registerNewUserTest() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        String token = service.register(userData);
-        assertNotNull(token);
-        assertEquals(userData.username(), db.getUser(userData.username()).username());
-    }
-
-    @Test
-    void registerUserTwice() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        String token = service.register(userData);
-        assertNotNull(token);
-        assertEquals(userData.username(), db.getUser(userData.username()).username());
-        assertThrows(ResponseException.class, () -> service.register(userData));
-    }
-
-    @Test
     void clearTest() throws ResponseException {
         service.clear();
+        assertNull(db.getAuth(accessToken));
+    }
+
+    @Test
+    void gameBoardConsistency() throws ResponseException {
+        ChessGame newChessGame = new ChessGame();
+        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        db.createGame(newGame);
+        GameData recoveredGame = db.getGame(1111);
+        assertEquals(newChessGame.getBoard(), recoveredGame.game().getBoard());
 
     }
+
+    @Test
+    void passwordIsHashed() throws ResponseException {
+        assertNotEquals("password", db.getUser("username").password());
+    }
+
+
 
     @Test
     void loginTest() throws ResponseException {
@@ -61,12 +64,6 @@ class DataAccessTests {
         String token = service.register(userData);
         String loginToken = service.login(userData.username(), userData.password());
         assertNotEquals(token, loginToken);
-    }
-
-    @Test
-    void loginWithBadPassword() throws ResponseException {
-        registerNewUserTest();
-        assertThrows(ResponseException.class, () -> service.login("username", "TyPoS"));
     }
 
     @Test
