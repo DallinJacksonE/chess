@@ -7,6 +7,7 @@ import model.AuthData;
 import model.GameData;
 import model.UserData;
 import server.BadRequestError;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.*;
 
@@ -38,7 +39,9 @@ public class Service {
         if (db.getUser(userData.username()) != null) {
             throw new AuthenticationException(403, "error: already  taken");
         }
-        db.createUser(userData);
+        String clearPassword = userData.password();
+        String hash = BCrypt.hashpw(clearPassword, BCrypt.gensalt());
+        db.createUser(new UserData(userData.username(), hash, userData.email()));
         String token = generateToken();
         AuthData authData = new AuthData(token, userData.username());
         db.createAuth(token, authData);
@@ -55,7 +58,7 @@ public class Service {
         if (data == null) {
             throw new AuthenticationException(401, "error: User does not exist");
         }
-        if (!Objects.equals(data.password(), password)) {
+        if (!BCrypt.checkpw(password, data.password())) {
             throw new AuthenticationException(401, "error: invalid credentials");
         }
 

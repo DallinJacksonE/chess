@@ -106,7 +106,8 @@ public class Server {
         }
 
         service.joinGame(authToken, teamColorRequest.getAsString(), gameID.getAsInt());
-        return "{}";
+        res.status(200);
+        return new Gson().toJson(Map.of("message", "success"));
     }
 
     private Object register(Request req, Response res) throws ResponseException {

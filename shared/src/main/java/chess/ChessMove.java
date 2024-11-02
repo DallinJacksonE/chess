@@ -1,5 +1,7 @@
 package chess;
 
+import com.google.gson.Gson;
+
 import java.util.Objects;
 
 /**
@@ -68,5 +70,13 @@ public class ChessMove {
     public String toString() {
         return startPosition.toString() + "->" + endPosition.toString()
                 + "(" + promotionPiece + ")";
+    }
+
+    public String toJson() {
+        return new Gson().toJson(this);
+    }
+
+    public static ChessMove fromJson(String json) {
+        return new Gson().fromJson(json, ChessMove.class);
     }
 }

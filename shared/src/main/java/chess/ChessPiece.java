@@ -1,6 +1,7 @@
 package chess;
 
 import chess.rules.*;
+import com.google.gson.Gson;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -15,7 +16,7 @@ public class ChessPiece {
 
     private final ChessGame.TeamColor pieceColor;
     private final PieceType type;
-    private MoveCalculator moves;
+    private final MoveCalculator moves;
 
     public ChessPiece(ChessGame.TeamColor pieceColor, PieceType type) {
         this.pieceColor = pieceColor;
@@ -102,5 +103,13 @@ public class ChessPiece {
             piece = "B.";
         }
         return piece + this.type;
+    }
+
+    public String toJson() {
+        return new Gson().toJson(this);
+    }
+
+    public static ChessPiece fromJson(String json) {
+        return new Gson().fromJson(json, ChessPiece.class);
     }
 }

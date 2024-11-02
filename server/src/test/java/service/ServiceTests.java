@@ -26,7 +26,7 @@ public class ServiceTests {
         UserData userData = new UserData("username", "password", "email@example.com");
         String token = service.register(userData);
         assertNotNull(token);
-        assertEquals(userData, db.getUser(userData.username()));
+        assertEquals(userData.username(), db.getUser(userData.username()).username());
     }
 
     @Test
@@ -34,7 +34,7 @@ public class ServiceTests {
         UserData userData = new UserData("username", "password", "email@example.com");
         String token = service.register(userData);
         assertNotNull(token);
-        assertEquals(userData, db.getUser(userData.username()));
+        assertEquals(userData.username(), db.getUser(userData.username()).username());
         assertThrows(ResponseException.class, () -> service.register(userData));
     }
 
