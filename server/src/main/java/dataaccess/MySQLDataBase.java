@@ -66,6 +66,9 @@ public class MySQLDataBase implements DataInterface {
 
     @Override
     public Integer createGame(GameData gameData) throws DataAccessException {
+        if (getGame(gameData.gameID()) != null) {
+            throw new DataAccessException(500, "Game overwrite attempted");
+        }
         var statement = "INSERT INTO games (gameID, whitePlayer, blackPlayer, gameName, json) VALUES (?, ?, ?, ?, ?)";
         var json = gameData.toJson();
         executeUpdate(statement, gameData.gameID(), gameData.whiteUsername(), gameData.blackUsername(),
@@ -173,7 +176,7 @@ public class MySQLDataBase implements DataInterface {
         return new Gson().fromJson(json, AuthData.class);
     }
 
-    private int executeUpdate(String statement, Object... params) throws DataAccessException {
+    private void executeUpdate(String statement, Object... params) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
             try (var ps = conn.prepareStatement(statement, RETURN_GENERATED_KEYS)) {
                 for (var i = 0; i < params.length; i++) {
@@ -185,17 +188,16 @@ public class MySQLDataBase implements DataInterface {
                         case GameData p -> ps.setString(i + 1, p.toString());
                         case AuthData p -> ps.setString(i + 1, p.toString());
                         case null -> ps.setNull(i + 1, NULL);
-                        default -> {
-                        }
+
+                        default -> throw new DataAccessException(500, "Unexpected value: " + param);
                     }
                 }
                 ps.executeUpdate();
 
                 var rs = ps.getGeneratedKeys();
                 if (rs.next()) {
-                    return rs.getInt(1);
+                    rs.getInt(1);
                 }
-                return 0;
             }
         } catch (SQLException e) {
             throw new DataAccessException(500, String.format("unable to update database: %s, %s", statement, e.getMessage()));

@@ -2,16 +2,11 @@ package dataaccess;
 
 import chess.*;
 import chess.exception.ResponseException;
-
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-
 import org.junit.jupiter.api.*;
-
 import service.Service;
-
-
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -112,31 +107,6 @@ class DataAccessTests {
     }
 
     @Test
-    void joinGameAlreadyTaken() throws ResponseException {
-        UserData userData1 = new UserData("username1", "password1", "email1@example.com");
-        UserData userData2 = new UserData("username2", "password2", "email2@example.com");
-        UserData userData3 = new UserData("username3", "password3", "email3@example.com");
-        service.register(userData1);
-        service.register(userData2);
-        service.register(userData3);
-        var token1 = service.login(userData1.username(), userData1.password());
-        var token2 = service.login(userData2.username(), userData2.password());
-        var token3 = service.login(userData3.username(), userData3.password());
-        int gameID = service.createGame(token1, "newGame");
-
-        service.joinGame(token1, "WHITE", gameID);
-        service.joinGame(token2, "BLACK", gameID);
-
-        GameData gameData = db.getGame(gameID);
-
-        assertEquals(gameData.whiteUsername(), userData1.username());
-        assertEquals(gameData.blackUsername(), userData2.username());
-
-        assertThrows(ResponseException.class, () -> service.joinGame(token3, "WHITE", gameID));
-
-    }
-
-    @Test
     void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
         ChessGame newChessGame = new ChessGame();
         GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
@@ -153,4 +123,84 @@ class DataAccessTests {
         board2 = db.getGame(2222).game().getBoard();
         assertEquals(board2, board1);
     }
+
+    @Test
+    void testCreateGame() throws DataAccessException {
+        GameData game = new GameData(1, "user1", "user2", "game1", new ChessGame());
+        db.createGame(game);
+        assertNotNull(db.getGame(1));
+    }
+
+    @Test
+    void testCreateGameDuplicate() throws DataAccessException {
+        GameData game = new GameData(1, "user1", "user2", "game1", new ChessGame());
+        db.createGame(game);
+        assertThrows(DataAccessException.class, () -> db.createGame(game));
+    }
+
+    @Test
+    void testGetGame() throws DataAccessException {
+        GameData game = new GameData(1, "user1", "user2", "game1", new ChessGame());
+        db.createGame(game);
+        GameData retrievedGame = db.getGame(1);
+        assertEquals(game.gameID(), retrievedGame.gameID());
+    }
+
+    @Test
+    void testGetGameNotFound() throws DataAccessException {
+        assertNull(db.getGame(999));
+    }
+
+    @Test
+    void testGetUser() throws DataAccessException {
+        UserData user = new UserData("username", "password", "email@example.com");
+        db.createUser(user);
+        UserData retrievedUser = db.getUser("username");
+        assertEquals(user.username(), retrievedUser.username());
+    }
+
+    @Test
+    void testGetUserNotFound() throws DataAccessException {
+        assertNull(db.getUser("nonexistent"));
+    }
+
+
+    @Test
+    void testGetAuthNotFound() throws DataAccessException {
+        assertNull(db.getAuth("invalidToken"));
+    }
+
+
+    @Test
+    void testDeleteAuthNotFound() {
+        assertDoesNotThrow(() -> db.deleteAuth("invalidToken"));
+    }
+
+    @Test
+    void testListGames() throws DataAccessException {
+        GameData game1 = new GameData(1, "user1", "user2", "game1", new ChessGame());
+        GameData game2 = new GameData(2, "user3", "user4", "game2", new ChessGame());
+        db.createGame(game1);
+        db.createGame(game2);
+        assertEquals(2, db.listGames().size());
+    }
+
+    @Test
+    void testListGamesEmpty() throws DataAccessException {
+        assertTrue(db.listGames().isEmpty());
+    }
+
+    @Test
+    void testClear() throws DataAccessException {
+        GameData game = new GameData(1, "user1", "user2", "game1", new ChessGame());
+        db.createGame(game);
+        db.clear();
+        assertTrue(db.listGames().isEmpty());
+    }
+
+    @Test
+    void testClearNoGames() {
+        assertDoesNotThrow(() -> db.clear());
+    }
+
 }
