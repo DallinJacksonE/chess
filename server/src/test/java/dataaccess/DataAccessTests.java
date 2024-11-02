@@ -1,6 +1,6 @@
 package dataaccess;
 
-import chess.ChessGame;
+import chess.*;
 import chess.exception.ResponseException;
 
 import model.AuthData;
@@ -136,4 +136,21 @@ class DataAccessTests {
 
     }
 
+    @Test
+    void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
+        ChessGame newChessGame = new ChessGame();
+        GameData newGame = new GameData(1111, "username", "bob", "IwillWin", newChessGame);
+        db.createGame(newGame);
+        ChessGame anotherChessGame = new ChessGame();
+        anotherChessGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
+        GameData newGame2 = new GameData(2222, "tom", "bomberdill", "treesnack", anotherChessGame);
+        db.createGame(newGame2);
+        ChessBoard board1 = newChessGame.getBoard();
+        ChessBoard board2 = anotherChessGame.getBoard();
+        assertNotEquals(board2, board1);
+        db.updateGame(1111, new GameData(1111, "username", "bob", "IwillWin", anotherChessGame));
+        board1 = db.getGame(1111).game().getBoard();
+        board2 = db.getGame(2222).game().getBoard();
+        assertEquals(board2, board1);
+    }
 }
