@@ -59,11 +59,17 @@ class DataAccessTests {
 
 
     @Test
-    void loginTest() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        String token = service.register(userData);
-        String loginToken = service.login(userData.username(), userData.password());
-        assertNotEquals(token, loginToken);
+    void loginGivesNewToken() throws ResponseException {
+        String loginToken = service.login("username", "password");
+        assertNotEquals(accessToken, loginToken);
+    }
+
+    @Test
+    void loginReturnsUserdata() throws ResponseException {
+        UserData returnedData = db.getUser("username");
+        assertEquals("username", returnedData.username());
+        assertEquals("email@example.com", returnedData.email());
+        assertNotEquals("password", returnedData.password());
     }
 
     @Test
@@ -73,13 +79,10 @@ class DataAccessTests {
     }
 
     @Test
-    void successfulLogout() throws ResponseException {
-        UserData userData = new UserData("username", "password", "email@example.com");
-        service.register(userData);
-        var token = service.login(userData.username(), userData.password());
+    void deleteAuthRemovesTokenAfterLogout() throws ResponseException {
+        var token = service.login("username", "password");
         service.logout(token);
-        var newToken = service.login(userData.username(), userData.password());
-        assertNotEquals(token, newToken);
+        assertNull(db.getAuth(token));
     }
 
     @Test
