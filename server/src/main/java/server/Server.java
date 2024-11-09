@@ -20,16 +20,14 @@ public class Server {
     private static final String RESPONSE_TYPE = "application/json";
     private static final String USERNAME = "username";
     private static final String AUTH_HEADER = "Authorization";
-    private DataInterface db;
     private final Service service;
 
     public Server() {
+        DataInterface db;
         try {
             db = new MySQLDataBase();
-            System.out.println("Using MYSQL");
         } catch (DataAccessException e) {
             db = new SimpleLocalDataBase();
-            System.out.println("Using Local: " + e.getMessage());
         }
 
         service = new Service(db);
