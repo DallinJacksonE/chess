@@ -11,11 +11,12 @@ public class ChessClient {
     private final String serverUrl;
     private State state = State.SIGNEDOUT;
     private String userName = null;
+    private Repl repl = null;
 
-    public ChessClient(String serverUrl) {
+    public ChessClient(String serverUrl, Repl repl) {
         server = new ServerFacade(serverUrl);
         this.serverUrl = serverUrl;
-
+        this.repl = repl;
     }
 
     public String eval(String input) {
@@ -36,16 +37,20 @@ public class ChessClient {
     public String login(String[] parameters) throws ResponseException {
         try{
             if (parameters.length > 0) {
-
+                return server.login(parameters);
             }
         } catch (ResponseException e) {
             return e.getMessage();
         }
-
+        return "Login was unsuccessful.";
 
     }
 
-    public String help() {
+    public String getState() {
+        return this.state.toString();
+    }
 
+    public String help() {
+        return "called help";
     }
 }

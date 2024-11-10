@@ -62,4 +62,20 @@ public class EscapeSequences {
     public static final String EMPTY = " \u2003 ";
 
     public static String moveCursorToLocation(int x, int y) { return UNICODE_ESCAPE + "[" + y + ";" + x + "H"; }
+
+    /**
+     * Creates an escape sequence string that, if printed, should set the console text or background to any RGB color
+     *
+     * @param text  true if setting text color, false if setting background color
+     * @param red   amount of red 0-255
+     * @param green amount of green 0-255
+     * @param blue  amount of blue 0-255
+     * @return an escape sequence string that would set the console text or background to the specified color
+     */
+    public static String setColor(boolean text, int red, int green, int blue) {
+        if (red < 0 || red > 255 || green < 0 || green > 255 || blue < 0 || blue > 255) {
+            throw new IllegalArgumentException("Colors must be between 0 - 255");
+        }
+        return String.format("\u001B[%s8;2;%d;%d;%dm", (text) ? "3" : "4", red, green, blue);
+    }
 }

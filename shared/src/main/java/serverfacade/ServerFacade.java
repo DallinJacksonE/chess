@@ -9,5 +9,9 @@ public class ServerFacade {
         serverUrl = url;
     }
 
+    public String login(String[] parameters) throws ResponseException {
+        return "Login called";
+    }
+
 
 }
