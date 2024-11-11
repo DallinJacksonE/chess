@@ -118,9 +118,10 @@ public class Server {
     private Object login(Request req, Response res) throws ResponseException {
         res.type(RESPONSE_TYPE);
         JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
-        var username = body.get(USERNAME);
-        var password = body.get("password");
-        String token = service.login(username.getAsString(), password.getAsString());
+        var username = body.get(USERNAME).getAsString();
+        var password = body.get("password").getAsString();
+
+        String token = service.login(username, password);
         res.status(200);
         return new Gson().toJson(Map.of(USERNAME, username, "authToken", token));
     }

@@ -12,7 +12,7 @@ public class Repl {
         client = new ChessClient(serverUrl, this);
     }
     public void run() {
-        System.out.println("\uD83D\uDC36 Welcome to terminal chess. Type Help to get started.");
+        System.out.println(BLACK_KING + " Welcome to terminal chess. Type Help to get started.");
         System.out.print(client.help());
 
         Scanner scanner = new Scanner(System.in);
