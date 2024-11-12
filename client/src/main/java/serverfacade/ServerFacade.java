@@ -20,7 +20,7 @@ public class ServerFacade {
     public void clear() {
         var path = "/db";
         try {
-            makeRequest("DELETE", path, null, null);
+            makeRequest("DELETE", path, null, null, null);
         } catch (ResponseException e) {
             System.out.println("Clear is not working");
         }
@@ -28,20 +28,31 @@ public class ServerFacade {
 
     public AuthData register(UserData userData) throws ResponseException {
         var path = "/user";
-        return makeRequest("POST", path, userData, AuthData.class);
+        return makeRequest("POST", path, userData, AuthData.class, null);
     }
 
     public AuthData login(Map<String, String> loginMap) throws ResponseException {
         var path = "/session";
-        return makeRequest("POST", path, loginMap, AuthData.class);
+        return makeRequest("POST", path, loginMap, AuthData.class, null);
     }
 
-    private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass) throws ResponseException {
+    public String logout(String token) throws ResponseException {
+        var path = "/session";
+
+        makeRequest("DELETE", path, null, null, token);
+        return "Logged Out.";
+    }
+
+    private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass, String authToken) throws ResponseException {
         try {
             URL url = (new URI(serverUrl + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();
             http.setRequestMethod(method);
             http.setDoOutput(true);
+
+            if (authToken != null) {
+                http.setRequestProperty("Authorization", authToken);
+            }
 
             writeBody(request, http);
             http.connect();

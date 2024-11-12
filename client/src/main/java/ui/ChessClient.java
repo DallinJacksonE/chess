@@ -32,6 +32,7 @@ public class ChessClient {
             return switch (cmd) {
                 case "login" -> login(params);
                 case "register" -> register(params);
+                case "logout" -> logout();
 
                 default -> help();
             };
@@ -84,7 +85,7 @@ public class ChessClient {
                 this.userName = response.username();
                 this.authToken = response.authToken();
                 this.state = State.SIGNEDIN;
-                return String.format("Welcome back %s", this.userName);
+                return String.format("Welcome to terminal chess %s", this.userName);
             } else {
                 throw new ResponseException(400, "Please enter your <USERNAME> <EMAIL> <PASSWORD>");
             }
@@ -96,6 +97,20 @@ public class ChessClient {
                 return "Looks like we are having issues on our end. Please try again later";
             }
         }
+    }
+
+    public String logout() {
+        try {
+            return server.logout(this.authToken);
+        } catch (ResponseException e) {
+            return e.toString();
+        } finally {
+            this.authToken = null;
+            this.userName = "";
+            this.state = State.SIGNEDOUT;
+        }
+
+
     }
 
     public String getState() {
