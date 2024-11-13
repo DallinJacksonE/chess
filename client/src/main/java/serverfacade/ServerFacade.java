@@ -6,7 +6,10 @@ import java.util.Map;
 import chess.exception.ResponseException;
 import com.google.gson.Gson;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
+import ui.responseobjects.*;
+
 
 
 public class ServerFacade {
@@ -37,9 +40,24 @@ public class ServerFacade {
 
     public String logout(String token) throws ResponseException {
         var path = "/session";
-        makeRequest("DELETE", path, token, null, null);
-        return "Logged Out.";
+        return makeRequest("DELETE", path, token, null, String.class);
     }
+
+    public GameData[] listGames(String token) throws ResponseException {
+        var path = "/game";
+
+        var response = makeRequest("GET", path, token, null, ListGamesResponse.class);
+        return response.games();
+    }
+
+    public CreateGameResponse createGame(String gameName, String token) throws ResponseException {
+        var path = "/game";
+        return makeRequest("POST", path, token, Map.of("gameName", gameName), CreateGameResponse.class);
+    }
+
+
+
+
 
     private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws ResponseException {
         try {

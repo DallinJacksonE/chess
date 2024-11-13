@@ -5,7 +5,7 @@ import model.AuthData;
 import model.UserData;
 import org.glassfish.grizzly.http.server.Response;
 import serverfacade.ServerFacade;
-
+import ui.responseobjects.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -122,7 +122,16 @@ public class ChessClient {
     }
 
     public String createGame(String[] parameters) {
-        return "create game called";
+        try {
+            if (parameters.length != 1) {
+                throw new ResponseException(400, "Please create game with: newGame <newGameName> (newGame myChessGameName)");
+            }
+            String gameName = parameters[0];
+            CreateGameResponse response = server.createGame(gameName, authToken);
+            return response.getGameID();
+        } catch (ResponseException e) {
+            return e.toString();
+        }
     }
 
     public String listGames(String[] parameters) {

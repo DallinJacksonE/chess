@@ -2,10 +2,13 @@ package client;
 
 import chess.exception.ResponseException;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 import org.junit.jupiter.api.*;
 import server.Server;
 import serverfacade.ServerFacade;
+import ui.State;
+import ui.responseobjects.CreateGameResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +42,6 @@ public class ServerFacadeTests {
     void clearDB() {
         facade.clear();
     }
-
 
     @Test
     void registerTest() {
@@ -102,7 +104,75 @@ public class ServerFacadeTests {
         Map<String, String> linkLogin = new HashMap<>();
         linkLogin.put("username", usernameLink);
         linkLogin.put("password", "breakvasesallday");
-        assertThrows(ResponseException.class, () ->facade.login(linkLogin));
+        assertThrows(ResponseException.class, () -> facade.login(linkLogin));
     }
 
+    @Test
+    void logoutWorks() throws ResponseException {
+        String usernameLink = "link";
+        String passwordLink = "hyaah!";
+        String emailLink = "hyrulewarrior1@zonai.net";
+        UserData linkData = new UserData(usernameLink, passwordLink, emailLink);
+        try {
+            AuthData linkAuth = facade.register(linkData);
+            assertDoesNotThrow(() -> facade.logout(linkAuth.authToken()));
+        } catch (ResponseException e) {
+            throw new ResponseException(e.statusCode(), e.toString());
+        }
+
+    }
+
+    @Test
+    void logoutComplainsWhenLogoutCalledTwice() throws ResponseException {
+        String usernameLink = "link";
+        String passwordLink = "hyaah!";
+        String emailLink = "hyrulewarrior1@zonai.net";
+        UserData linkData = new UserData(usernameLink, passwordLink, emailLink);
+        try {
+            AuthData linkAuth = facade.register(linkData);
+            assertDoesNotThrow(() -> facade.logout(linkAuth.authToken()));
+            assertThrows(ResponseException.class, () -> facade.logout(linkAuth.authToken()));
+        } catch (ResponseException e) {
+            throw new ResponseException(e.statusCode(), e.toString());
+        }
+    }
+
+    @Test
+    void listGamesReturnsGames() throws ResponseException {
+        String usernameZelda = "zelda";
+        String passwordZelda = "goddessGirl123";
+        String emailZelda = "zelda@zonai.net";
+        UserData zeldaData = new UserData(usernameZelda, passwordZelda, emailZelda);
+
+        AuthData zeldaAuth = facade.register(zeldaData);
+        facade.createGame("ZeldaWins", zeldaAuth.authToken());
+        facade.createGame("Link won?", zeldaAuth.authToken());
+        facade.createGame("I must practice", zeldaAuth.authToken());
+        facade.createGame("Impa and Zelda", zeldaAuth.authToken());
+        assertEquals(4, facade.listGames(zeldaAuth.authToken()).length);
+    }
+
+
+    @Test
+    void listGamesReturnsEmptyArrayWhenNoGamesExist() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        GameData[] games = facade.listGames(impaAuthData.authToken());
+        assertEquals(0, games.length);
+    }
+
+    @Test
+    void createGameWorks() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        assertNotNull(gameID.getGameID());
+
+    }
 }
