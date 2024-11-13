@@ -35,6 +35,11 @@ public class ServerFacadeTests {
         server.stop();
     }
 
+    @BeforeEach
+    void clearDB() {
+        facade.clear();
+    }
+
 
     @Test
     void registerTest() {
@@ -44,7 +49,6 @@ public class ServerFacadeTests {
         UserData linkData = new UserData(username, password, email);
 
         assertDoesNotThrow(() -> facade.register(linkData));
-        facade.clear();
     }
 
     @Test
@@ -85,7 +89,7 @@ public class ServerFacadeTests {
 
         assertDoesNotThrow(() -> facade.register(impaData));
         assertThrows(ResponseException.class, () -> facade.register(impaData));
-        facade.clear();
+
     }
 
     @Test

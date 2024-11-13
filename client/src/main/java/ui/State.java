@@ -4,5 +4,5 @@ public enum State {
     SIGNEDIN,
     SIGNEDOUT,
     PLAYINGGAME,
-    INMENU
+    OBSERVINGGAME
 }

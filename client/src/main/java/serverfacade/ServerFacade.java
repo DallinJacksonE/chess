@@ -1,6 +1,5 @@
 package serverfacade;
 import java.io.*;
-import java.lang.module.ResolutionException;
 import java.net.*;
 import java.util.Map;
 
@@ -28,22 +27,21 @@ public class ServerFacade {
 
     public AuthData register(UserData userData) throws ResponseException {
         var path = "/user";
-        return makeRequest("POST", path, userData, AuthData.class, null);
+        return makeRequest("POST", path, null, userData, AuthData.class);
     }
 
     public AuthData login(Map<String, String> loginMap) throws ResponseException {
         var path = "/session";
-        return makeRequest("POST", path, loginMap, AuthData.class, null);
+        return makeRequest("POST", path, null, loginMap, AuthData.class);
     }
 
     public String logout(String token) throws ResponseException {
         var path = "/session";
-
-        makeRequest("DELETE", path, null, null, token);
+        makeRequest("DELETE", path, token, null, null);
         return "Logged Out.";
     }
 
-    private <T> T makeRequest(String method, String path, Object request, Class<T> responseClass, String authToken) throws ResponseException {
+    private <T> T makeRequest(String method, String path, String authToken, Object request, Class<T> responseClass) throws ResponseException {
         try {
             URL url = (new URI(serverUrl + path)).toURL();
             HttpURLConnection http = (HttpURLConnection) url.openConnection();

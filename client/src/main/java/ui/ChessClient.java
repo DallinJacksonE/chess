@@ -3,11 +3,14 @@ package ui;
 import chess.exception.ResponseException;
 import model.AuthData;
 import model.UserData;
+import org.glassfish.grizzly.http.server.Response;
 import serverfacade.ServerFacade;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import static ui.EscapeSequences.*;
 
 
 public class ChessClient {
@@ -29,13 +32,32 @@ public class ChessClient {
             var tokens = input.toLowerCase().split(" ");
             var cmd = (tokens.length > 0) ? tokens[0] : "help";
             var params = Arrays.copyOfRange(tokens, 1, tokens.length);
-            return switch (cmd) {
-                case "login" -> login(params);
-                case "register" -> register(params);
-                case "logout" -> logout();
-
-                default -> help();
-            };
+            if (this.state == State.SIGNEDOUT) {
+                return switch (cmd) {
+                    case "login" -> login(params);
+                    case "register" -> register(params);
+                    case "quit" -> quit();
+                    default -> help();
+                };
+            } else if (this.state == State.SIGNEDIN) {
+                return switch (cmd) {
+                    case "logout" -> logout();
+                    case "newGame" -> createGame(params);
+                    case "listGames" -> listGames(params);
+                    case "joinGame" -> joinGame(params);
+                    default -> help();
+                };
+            } else if (this.state == State.PLAYINGGAME) {
+                // these will have to do with websocket stuff
+                return switch (cmd) {
+                    case "makeMove" -> help();
+                    case "leave" -> help();
+                    case "resign" -> help();
+                    default -> help();
+                };
+            } else {
+                throw new ResponseException(500, "Invalid game state detected, possible tampering.");
+            }
         } catch (ResponseException ex) {
             return ex.getMessage();
         }
@@ -99,25 +121,71 @@ public class ChessClient {
         }
     }
 
+    public String createGame(String[] parameters) {
+        return "create game called";
+    }
+
+    public String listGames(String[] parameters) {
+        return "listgame called";
+    }
+
+    public String joinGame(String[] parameters) {
+        return "joingame called";
+    }
+
     public String logout() {
         try {
-            return server.logout(this.authToken);
-        } catch (ResponseException e) {
-            return e.toString();
-        } finally {
+            String result =  server.logout(this.authToken);
             this.authToken = null;
             this.userName = "";
             this.state = State.SIGNEDOUT;
+            return result;
+        } catch (ResponseException e) {
+            return e.toString();
         }
+    }
 
-
+    public String quit() {
+        return "Thanks for playing";
     }
 
     public String getState() {
         return this.state.toString();
     }
 
-    public String help() {
-        return "called help";
+    public String help() throws ResponseException {
+        if (state == State.SIGNEDOUT) {
+            return SET_TEXT_COLOR_MAGENTA + """
+                    - help
+                    - signIn <username> <password>
+                    - register <username> <email> <password>
+                    - quit
+                    """;
+        } else if (state == State.SIGNEDIN) {
+            return SET_TEXT_COLOR_MAGENTA + """
+                - help
+                - logout
+                - newGame <newGameName> (makes a new chess game with specified name)
+                - listGames (list all playable games)
+                - playGame <gameID> <desiredColor> (join specified game as given team color)
+                - observeGame <gameID> (watch a game)
+                """;
+        } else if (state == State.PLAYINGGAME) {
+            return """
+                - help
+                - move <yourPieceCoordinates> <targetCoordinates> (move a3 a4)
+                - highlight <pieceCoordinates>
+                - redraw (redraws the board)
+                - leave (leave your pieces for someone else to take over)
+                - resign (ends the game, declaring your opponent the winner)
+                """;
+        } else if (state == State.OBSERVINGGAME) {
+            return """
+                - help
+                - redraw (redraws the board)
+                - stop (stop observing game)
+                """;
+        }
+    throw new ResponseException(500, "Invalid game state detected, possible tampering.");
     }
 }
