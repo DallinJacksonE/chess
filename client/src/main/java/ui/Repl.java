@@ -31,7 +31,7 @@ public class Repl {
     }
 
     private void printPrompt() {
-        System.out.print("\n"+RESET_TEXT_COLOR + "[" + this.client.getState() + "]" + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
+        System.out.print("\n"+RESET_TEXT_COLOR + RESET_BG_COLOR + "[" + this.client.getState() + "]" + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
     }
 
 }

@@ -1,6 +1,7 @@
 package ui;
 
-import chess.ChessBoard;
+import chess.ChessGame;
+import chess.ChessPiece;
 import chess.exception.ResponseException;
 import model.AuthData;
 import model.GameData;
@@ -10,10 +11,7 @@ import ui.responseobjects.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-
 import static ui.EscapeSequences.*;
-
 
 public class ChessClient {
     private final ServerFacade server;
@@ -21,13 +19,13 @@ public class ChessClient {
     private State state = State.SIGNEDOUT;
     private String userName = null;
     private String authToken = null;
-    private Repl repl = null;
-    private ChessBoard currentBoard = null;
+
+    private GameData currentGame = null;
 
     public ChessClient(String serverUrl, Repl repl) {
         server = new ServerFacade(serverUrl);
         this.serverUrl = serverUrl;
-        this.repl = repl;
+
     }
 
     public String eval(String input) {
@@ -48,6 +46,7 @@ public class ChessClient {
                     case "newgame" -> createGame(params);
                     case "listgames" -> listGames();
                     case "playgame" -> joinGame(params);
+                    case "observegame" -> observeGame(params);
                     default -> help();
                 };
             } else if (this.state == State.PLAYINGGAME) {
@@ -178,9 +177,8 @@ public class ChessClient {
             if (parameters.length != 2) {
                 throw new ResponseException(401, "Incorrect args");
             }
-            GameData game = server.joinGame(parameters[0], this.authToken, parameters[1]);
-            this.currentBoard = game.game().getBoard();
-            return EscapeSequences.SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE + parameters[0] + drawBoard();
+            this.currentGame = server.joinGame(parameters[0], this.authToken, parameters[1]);
+            return EscapeSequences.SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE + parameters[0] + drawBlackBoard();
         } catch (ResponseException e) {
             if (e.statusCode() == 401) {
                 return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given.";
@@ -194,24 +192,102 @@ public class ChessClient {
             if (parameters.length != 1) {
                 throw new ResponseException(401, "Incorrect arguments given.");
             }
-            GameData game = server.getGame(parameters[0], this.authToken);
-            this.currentBoard = game.game().getBoard();
-            return "Observing Game: " + game.gameID() + drawBoard();
+            this.currentGame = server.getGame(parameters[0], this.authToken);
+            String board = "Observing Game: " + currentGame.gameID();
+            board += drawBothBoardPerspective(SET_BG_COLOR_DARK_GREEN);
+            return board;
         } catch (ResponseException e) {
             return SET_TEXT_COLOR_YELLOW + e.getMessage();
         }
     }
 
-    private String drawBoard() {
-        return """ 
-                
-                [][][][][][][]
-                [][][][][][][]
-                [][][][][][][]
-                [][][][][][][]
-                [][][][][][][]
-                [][][][][][][]
-                """;
+    private String drawBothBoardPerspective(String divideColor) {
+        String blackBoard = drawBlackBoard();
+        String whiteBoard = drawWhiteBoard();
+        return blackBoard + RESET_TEXT_COLOR + RESET_BG_COLOR + "\n" + divideColor
+                + "                              " + RESET_TEXT_COLOR + RESET_BG_COLOR + whiteBoard;
+    }
+
+    private String drawBlackBoard() {
+        String boardBlackPerspective = "";
+        boardBlackPerspective += RESET_BG_COLOR + RESET_TEXT_COLOR;
+        //Constants
+        String borderBackground = SET_BG_COLOR_BLUE;
+        String borderTextColor = SET_TEXT_COLOR_WHITE;
+        String whiteCellBackground = setColor(false, 189, 189, 189);
+        String blackCellBackground = setColor(false, 97, 97, 97);
+        String whitePieceColor = setColor(true, 238, 238, 238);
+        String blackPieceColor = setColor(true, 33, 33, 33);
+        String blackPerspectiveLetterBar = "    h  g  f  e  d  c  b  a    ";
+        //Top layers first
+        boardBlackPerspective += "\n" + borderBackground + borderTextColor + blackPerspectiveLetterBar
+                + RESET_BG_COLOR + RESET_TEXT_COLOR + "\n";
+        ChessPiece[][] board = this.currentGame.game().getBoard().getBoard();
+        //Doing black perspective to see if inverting it works for getting white perspective
+        int i = 1;
+        int j = 1;
+        for (ChessPiece[] row : board) {
+            String border = borderBackground + borderTextColor + " " + i + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
+            boardBlackPerspective += border;
+            for (ChessPiece cell : row) {
+                String background = ((j + i) % 2 == 0) ? blackCellBackground : whiteCellBackground;
+                if (cell != null) {
+                    String textColor = (cell.getTeamColor() == ChessGame.TeamColor.WHITE) ? whitePieceColor : blackPieceColor;
+                    String total = background + textColor + " " + cell.toPieceRep() + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
+                    boardBlackPerspective += total;
+                } else {
+                    String total = background + "   " + RESET_BG_COLOR;
+                    boardBlackPerspective += total;
+                }
+               j++;
+            }
+            boardBlackPerspective += border + "\n";
+            i++;
+        }
+        boardBlackPerspective += borderBackground + borderTextColor + blackPerspectiveLetterBar
+                + RESET_BG_COLOR + RESET_TEXT_COLOR;
+        return boardBlackPerspective;
+    }
+
+    private String drawWhiteBoard() {
+        String boardWhitePerspective = "";
+        boardWhitePerspective += RESET_BG_COLOR + RESET_TEXT_COLOR;
+
+        String borderBackground = SET_BG_COLOR_BLUE;
+        String borderTextColor = SET_TEXT_COLOR_WHITE;
+        String whiteCellBackground = setColor(false, 189, 189, 189);
+        String blackCellBackground = setColor(false, 97, 97, 97);
+        String whitePieceColor = setColor(true, 238, 238, 238);
+        String blackPieceColor = setColor(true, 33, 33, 33);
+        String whitePerspectiveLetterBar = "    a  b  c  d  e  f  g  h    ";
+        //Top layers first
+        boardWhitePerspective += "\n" + borderBackground + borderTextColor + whitePerspectiveLetterBar
+                + RESET_BG_COLOR + RESET_TEXT_COLOR + "\n";
+        ChessPiece[][] board = this.currentGame.game().getBoard().getBoard();
+        //Doing black perspective to see if inverting it works for getting white perspective
+        int i = 8;
+        int j = 1;
+        for (ChessPiece[] row : board) {
+            String border = borderBackground + borderTextColor + " " + i + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
+            boardWhitePerspective += border;
+            for (ChessPiece cell : row) {
+                String background = ((j + i) % 2 == 0) ? blackCellBackground : whiteCellBackground;
+                if (cell != null) {
+                    String textColor = (cell.getTeamColor() == ChessGame.TeamColor.WHITE) ? whitePieceColor : blackPieceColor;
+                    String total = background + textColor + " " + cell.toPieceRep() + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
+                    boardWhitePerspective += total;
+                } else {
+                    String total = background + "   " + RESET_BG_COLOR;
+                    boardWhitePerspective += total;
+                }
+                j++;
+            }
+            boardWhitePerspective += border + "\n";
+            i--;
+        }
+        boardWhitePerspective += borderBackground + borderTextColor + whitePerspectiveLetterBar
+                + RESET_BG_COLOR + RESET_TEXT_COLOR;
+        return boardWhitePerspective;
     }
 
     public String logout() {

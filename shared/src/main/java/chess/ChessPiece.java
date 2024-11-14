@@ -104,6 +104,17 @@ public class ChessPiece {
         return piece + this.type;
     }
 
+    public String toPieceRep() {
+        return switch (this.type) {
+            case KING -> "K";
+            case QUEEN -> "Q";
+            case BISHOP -> "B";
+            case KNIGHT -> "H";
+            case ROOK -> "R";
+            case PAWN -> "P";
+        };
+    }
+
     public String toJson() {
         return new Gson().toJson(this);
     }
