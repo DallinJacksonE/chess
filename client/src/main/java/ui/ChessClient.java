@@ -425,6 +425,9 @@ public class ChessClient {
         if (e.statusCode() == 400) {
             return SET_TEXT_COLOR_YELLOW + e.getMessage();
         } else if (e.statusCode() == 401) {
+            if (Objects.equals(e.getMessage(), "failure: 401")) {
+                return SET_TEXT_COLOR_YELLOW + "Incorrect credentials";
+            }
             return SET_TEXT_COLOR_YELLOW + e.getMessage()
                     + RESET_TEXT_COLOR;
         } else if (e.statusCode() == 403) {

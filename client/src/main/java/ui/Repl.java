@@ -15,13 +15,13 @@ public class Repl {
         System.out.println(BLACK_KING + " Welcome to Terminal Chess. Type Help to get started.");
         Scanner scanner = new Scanner(System.in);
         var result = "";
-        while (!result.equals("Thanks for playing") && !result.equals("Invalid game state detected, possible tampering.")) {
+        while (!result.equals("Thanks for playing!") && !result.equals("Invalid game state detected, possible tampering.")) {
             printPrompt();
             String line = scanner.nextLine();
             try {
                 result = client.eval(line);
                 System.out.print(result);
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 var msg = e.toString();
                 System.out.print(msg);
             }
