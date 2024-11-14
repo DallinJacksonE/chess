@@ -375,7 +375,8 @@ public class ChessClient {
                 String background = ((l + i) % 2 != 0) ? blackCellBackground : whiteCellBackground;
                 if (cell != null) {
                     String textColor = (cell.getTeamColor() == ChessGame.TeamColor.WHITE) ? whitePieceColor : blackPieceColor;
-                    boardString.append(background).append(textColor).append(" ").append(cell.toPieceRep()).append(" ").append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
+                    boardString.append(background).append(textColor).append(" ").append(cell.toPieceRep())
+                            .append(" ").append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
                 } else {
                     boardString.append(background).append("   ").append(RESET_BG_COLOR);
                 }

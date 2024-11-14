@@ -15,7 +15,8 @@ public class Repl {
         System.out.println(BLACK_KING + " Welcome to Terminal Chess. Type Help to get started.");
         Scanner scanner = new Scanner(System.in);
         var result = "";
-        while (!result.equals("Thanks for playing!") && !result.equals("Invalid game state detected, possible tampering.")) {
+        while (!result.equals("Thanks for playing!")
+                && !result.equals("Invalid game state detected, possible tampering.")) {
             printPrompt();
             String line = scanner.nextLine();
             try {
@@ -31,7 +32,8 @@ public class Repl {
     }
 
     private void printPrompt() {
-        System.out.print("\n"+RESET_TEXT_COLOR + RESET_BG_COLOR + "[" + this.client.getState() + "]" + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
+        System.out.print("\n"+RESET_TEXT_COLOR + RESET_BG_COLOR + "[" + this.client.getState() + "]"
+                + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
     }
 
 }
