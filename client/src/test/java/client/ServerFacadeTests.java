@@ -1,5 +1,4 @@
 package client;
-
 import chess.exception.ResponseException;
 import model.AuthData;
 import model.GameData;
@@ -7,14 +6,10 @@ import model.UserData;
 import org.junit.jupiter.api.*;
 import server.Server;
 import serverfacade.ServerFacade;
-import ui.State;
 import ui.responseobjects.CreateGameResponse;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.*;
-
 
 public class ServerFacadeTests {
 
@@ -185,5 +180,53 @@ public class ServerFacadeTests {
         AuthData impaAuthData = facade.register(impaData);
         CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
         assertDoesNotThrow(() -> facade.joinGame(gameID.getGameID(), impaAuthData.authToken(), "WHITE"));
+    }
+
+    @Test
+    void joinGameThrowsErrorWithNoAuth() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        assertThrows(ResponseException.class, () -> facade.joinGame(gameID.getGameID(), "faketoken", "WHITE"));
+    }
+
+    @Test
+    void joinGameReturnsActualGameData() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        GameData game = facade.joinGame(gameID.getGameID(), impaAuthData.authToken(), "WHITE");
+        assertNotNull(game.gameName());
+        assertNotNull(game.game());
+    }
+
+    @Test
+    void getGameWorksAndReturnsGameData() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        GameData game = facade.getGame(gameID.getGameID(), impaAuthData.authToken());
+        assertNotNull(game.gameName());
+        assertNotNull(game.game());
+    }
+
+    @Test
+    void getGameThatDoesNotExistReturnsErrorNotNull() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        assertThrows(ResponseException.class, () -> facade.getGame("BADID1234", impaAuthData.authToken()));
     }
 }
