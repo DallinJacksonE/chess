@@ -1,14 +1,16 @@
 package ui;
 
+import chess.ChessBoard;
 import chess.exception.ResponseException;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
-import org.glassfish.grizzly.http.server.Response;
 import serverfacade.ServerFacade;
 import ui.responseobjects.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static ui.EscapeSequences.*;
 
@@ -20,6 +22,7 @@ public class ChessClient {
     private String userName = null;
     private String authToken = null;
     private Repl repl = null;
+    private ChessBoard currentBoard = null;
 
     public ChessClient(String serverUrl, Repl repl) {
         server = new ServerFacade(serverUrl);
@@ -30,7 +33,7 @@ public class ChessClient {
     public String eval(String input) {
         try {
             var tokens = input.toLowerCase().split(" ");
-            var cmd = (tokens.length > 0) ? tokens[0] : "help";
+            var cmd = tokens[0];
             var params = Arrays.copyOfRange(tokens, 1, tokens.length);
             if (this.state == State.SIGNEDOUT) {
                 return switch (cmd) {
@@ -42,15 +45,15 @@ public class ChessClient {
             } else if (this.state == State.SIGNEDIN) {
                 return switch (cmd) {
                     case "logout" -> logout();
-                    case "newGame" -> createGame(params);
-                    case "listGames" -> listGames(params);
-                    case "joinGame" -> joinGame(params);
+                    case "newgame" -> createGame(params);
+                    case "listgames" -> listGames();
+                    case "playgame" -> joinGame(params);
                     default -> help();
                 };
             } else if (this.state == State.PLAYINGGAME) {
                 // these will have to do with websocket stuff
                 return switch (cmd) {
-                    case "makeMove" -> help();
+                    case "makemove" -> help();
                     case "leave" -> help();
                     case "resign" -> help();
                     default -> help();
@@ -85,10 +88,10 @@ public class ChessClient {
             }
         } catch (ResponseException e) {
             //need to clean error messages
-            if (e.statusCode() == 401) {
-                return "Incorrect username or password.";
+            if (e.statusCode() == 400 || e.statusCode() == 401) {
+                return SET_TEXT_COLOR_YELLOW + "Incorrect username or password.";
             } else {
-                return "Unknown error, please try again.";
+                return SET_TEXT_COLOR_YELLOW + "Unknown error, please try again.";
             }
         }
     }
@@ -109,14 +112,16 @@ public class ChessClient {
                 this.state = State.SIGNEDIN;
                 return String.format("Welcome to terminal chess %s", this.userName);
             } else {
-                throw new ResponseException(400, "Please enter your <USERNAME> <EMAIL> <PASSWORD>");
+                throw new ResponseException(403, "Please enter your <USERNAME> <EMAIL> <PASSWORD>");
             }
         } catch (ResponseException e) {
             //need to clean error messages
-            if (e.statusCode() == 403) {
-                return "Username taken, please try again with a different username.";
+            if (e.statusCode() == 400) {
+                return SET_TEXT_COLOR_YELLOW + "Username taken, please try again with a different username.";
+            } else if (e.statusCode() == 403){
+                return SET_TEXT_COLOR_YELLOW + e.getMessage();
             } else {
-                return "Looks like we are having issues on our end. Please try again later";
+                return SET_TEXT_COLOR_YELLOW + "Looks like we are having issues on our end. Please try again later";
             }
         }
     }
@@ -128,27 +133,94 @@ public class ChessClient {
             }
             String gameName = parameters[0];
             CreateGameResponse response = server.createGame(gameName, authToken);
-            return response.getGameID();
+            return SET_TEXT_COLOR_MAGENTA + "Your new gameID: " + SET_TEXT_COLOR_GREEN + response.getGameID();
+        } catch (ResponseException e) {
+            if (e.statusCode() == 400) {
+                return SET_TEXT_COLOR_YELLOW + "Incorrect function call - newGame <newGameName> (makes a new chess game with specified name)";
+            } else if (e.statusCode() == 401) {
+                return SET_TEXT_COLOR_YELLOW + "You are not authorized to make a game. Please log out and log in and try again.";
+            }
+            return e.toString();
+        }
+    }
+
+    public String listGames() {
+        try {
+            GameData[] games = server.listGames(this.authToken);
+            if (games.length == 0) {
+                return "There are no current games.";
+            }
+            StringBuilder response = new StringBuilder("Current Chess Games: \n");
+            int i = 1;
+            for (GameData game : games) {
+                response.append(SET_TEXT_COLOR_MAGENTA + "[").append(i).append("]");
+                String gameDisplay = listGamesDisplay(game);
+                response.append(gameDisplay);
+                i++;
+            }
+            return response.toString();
         } catch (ResponseException e) {
             return e.toString();
         }
     }
 
-    public String listGames(String[] parameters) {
-        return "listgame called";
+    private static String listGamesDisplay(GameData game) {
+        String whitePlayer = (game.whiteUsername() == null) ? "Available" : game.whiteUsername();
+        String blackPlayer = (game.blackUsername() == null) ? "Available" : game.blackUsername();
+        return EscapeSequences.SET_TEXT_COLOR_MAGENTA + "   Name: "+ EscapeSequences.SET_TEXT_COLOR_BLUE + game.gameName()
+                + EscapeSequences.SET_TEXT_COLOR_MAGENTA + " GameID: " + EscapeSequences.SET_TEXT_COLOR_BLUE + game.gameID()
+                + EscapeSequences.SET_TEXT_COLOR_MAGENTA + "\n      WhiteTeam: " + EscapeSequences.SET_TEXT_COLOR_BLUE + whitePlayer
+                + EscapeSequences.SET_TEXT_COLOR_MAGENTA + " BlackTeam: " + EscapeSequences.SET_TEXT_COLOR_BLUE + blackPlayer + "\n";
     }
 
     public String joinGame(String[] parameters) {
-        return "joingame called";
+        try {
+            if (parameters.length != 2) {
+                throw new ResponseException(401, "Incorrect args");
+            }
+            GameData game = server.joinGame(parameters[0], this.authToken, parameters[1]);
+            this.currentBoard = game.game().getBoard();
+            return EscapeSequences.SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE + parameters[0] + drawBoard();
+        } catch (ResponseException e) {
+            if (e.statusCode() == 401) {
+                return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given.";
+            }
+            return "Looks like there was an issue with that, check the help menu and try again";
+        }
+    }
+
+    public String observeGame(String[] parameters) {
+        try {
+            if (parameters.length != 1) {
+                throw new ResponseException(401, "Incorrect arguments given.");
+            }
+            GameData game = server.getGame(parameters[0], this.authToken);
+            this.currentBoard = game.game().getBoard();
+            return "Observing Game: " + game.gameID() + drawBoard();
+        } catch (ResponseException e) {
+            return SET_TEXT_COLOR_YELLOW + e.getMessage();
+        }
+    }
+
+    private String drawBoard() {
+        return """ 
+                
+                [][][][][][][]
+                [][][][][][][]
+                [][][][][][][]
+                [][][][][][][]
+                [][][][][][][]
+                [][][][][][][]
+                """;
     }
 
     public String logout() {
         try {
-            String result =  server.logout(this.authToken);
+            server.logout(this.authToken);
             this.authToken = null;
             this.userName = "";
             this.state = State.SIGNEDOUT;
-            return result;
+            return "Signed out.";
         } catch (ResponseException e) {
             return e.toString();
         }
@@ -165,13 +237,15 @@ public class ChessClient {
     public String help() throws ResponseException {
         if (state == State.SIGNEDOUT) {
             return SET_TEXT_COLOR_MAGENTA + """
+                    Commands:
                     - help
-                    - signIn <username> <password>
+                    - login <username> <password>
                     - register <username> <email> <password>
                     - quit
                     """;
         } else if (state == State.SIGNEDIN) {
             return SET_TEXT_COLOR_MAGENTA + """
+                Commands:
                 - help
                 - logout
                 - newGame <newGameName> (makes a new chess game with specified name)
@@ -181,6 +255,7 @@ public class ChessClient {
                 """;
         } else if (state == State.PLAYINGGAME) {
             return """
+                Commands:
                 - help
                 - move <yourPieceCoordinates> <targetCoordinates> (move a3 a4)
                 - highlight <pieceCoordinates>
@@ -190,6 +265,7 @@ public class ChessClient {
                 """;
         } else if (state == State.OBSERVINGGAME) {
             return """
+                Commands:
                 - help
                 - redraw (redraws the board)
                 - stop (stop observing game)

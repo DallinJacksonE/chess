@@ -82,8 +82,8 @@ public class Server {
         res.type(RESPONSE_TYPE);
         String authToken = req.headers(AUTH_HEADER);
         JsonObject body = new Gson().fromJson(req.body(), JsonObject.class);
-        var gameName = body.get("gameName");
-        Integer gameID = service.createGame(authToken, gameName.getAsString());
+        String gameName = body.get("gameName").getAsString();
+        Integer gameID = service.createGame(authToken, gameName);
         if (gameID == 0) {
             throw new DataAccessException(500, "issue with db and game creation");
         }
@@ -103,7 +103,7 @@ public class Server {
             throw new BadRequestError();
         }
 
-        service.joinGame(authToken, teamColorRequest.getAsString(), gameID.getAsInt());
+        service.joinGame(authToken, teamColorRequest.getAsString().toUpperCase(), gameID.getAsInt());
         res.status(200);
         return new Gson().toJson(Map.of("message", "success"));
     }

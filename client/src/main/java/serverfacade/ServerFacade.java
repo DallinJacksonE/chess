@@ -10,6 +10,7 @@ import model.GameData;
 import model.UserData;
 import ui.responseobjects.*;
 
+import static java.lang.Integer.parseInt;
 
 
 public class ServerFacade {
@@ -55,6 +56,22 @@ public class ServerFacade {
         return makeRequest("POST", path, token, Map.of("gameName", gameName), CreateGameResponse.class);
     }
 
+    public GameData joinGame(String gameID, String token, String team) throws ResponseException {
+        var path = "/game";
+        makeRequest("PUT", path, token, Map.of("playerColor", team, "gameID", gameID), GameData.class);
+        return getGame(gameID, token);
+    }
+
+    public GameData getGame(String gameID, String token) throws ResponseException {
+        GameData[] games = listGames(token);
+        for (GameData game : games) {
+            if (game.gameID() == parseInt(gameID)) {
+                return game;
+            }
+        }
+        throw new ResponseException(403, "Game not found.");
+    }
+
 
 
 
@@ -74,6 +91,8 @@ public class ServerFacade {
             http.connect();
             throwIfNotSuccessful(http);
             return readBody(http, responseClass);
+        } catch (ResponseException ex) {
+            throw new ResponseException(ex.statusCode(), ex.getMessage());
         } catch (Exception ex) {
             throw new ResponseException(500, ex.getMessage());
         }

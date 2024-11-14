@@ -175,4 +175,15 @@ public class ServerFacadeTests {
         assertNotNull(gameID.getGameID());
 
     }
+
+    @Test
+    void joinGameWorks() throws ResponseException {
+        String username = "impa";
+        String password = "shikaMaster";
+        String email = "impa@zonai.net";
+        UserData impaData = new UserData(username, password, email);
+        AuthData impaAuthData = facade.register(impaData);
+        CreateGameResponse gameID = facade.createGame("ImpaLearnsChess", impaAuthData.authToken());
+        assertDoesNotThrow(() -> facade.joinGame(gameID.getGameID(), impaAuthData.authToken(), "WHITE"));
+    }
 }

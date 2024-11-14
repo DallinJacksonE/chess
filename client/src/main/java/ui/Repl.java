@@ -27,10 +27,11 @@ public class Repl {
             }
         }
         System.out.println();
+        System.exit(0);
     }
 
     private void printPrompt() {
-        System.out.print(RESET_TEXT_COLOR + "[" + this.client.getState() + "]" + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
+        System.out.print("\n"+RESET_TEXT_COLOR + "[" + this.client.getState() + "]" + SET_TEXT_BLINKING + " >>> " + RESET_TEXT_BLINKING + SET_TEXT_COLOR_GREEN);
     }
 
 }

@@ -1,7 +1,7 @@
 package chess.exception;
 
 public class ResponseException extends Exception {
-    final private int statusCode;
+    private final int statusCode;
 
     public ResponseException(int statusCode, String message) {
         super(message);
