@@ -21,6 +21,7 @@ public class ChessClient {
     private String userName = null;
     private String authToken = null;
     private GameData currentGame = null;
+    private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
 
     /**
      * Constructor for ChessClient.
@@ -173,7 +174,9 @@ public class ChessClient {
         String gameName = parameters[0];
         try {
             CreateGameResponse response = server.createGame(gameName, authToken);
-            return SET_TEXT_COLOR_MAGENTA + "Your new gameID: " + SET_TEXT_COLOR_GREEN + response.getGameID() + RESET_TEXT_COLOR;
+            setGameIndicies();
+            return SET_TEXT_COLOR_MAGENTA + "Your new gameID: " + SET_TEXT_COLOR_GREEN +
+                    getKeyFromValue(gameIndicies, Integer.parseInt(response.getGameID())) + RESET_TEXT_COLOR;
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
@@ -188,9 +191,10 @@ public class ChessClient {
      */
     public String listGames() {
         try {
+            setGameIndicies();
             GameData[] games = server.listGames(this.authToken);
             if (games.length == 0) {
-                return "There are no current games.";
+                return "There are no current games";
             }
             StringBuilder response = new StringBuilder("Current Chess Games: \n");
             int i = 1;
@@ -218,10 +222,12 @@ public class ChessClient {
             return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given";
         }
         try {
-            server.getGame(parameters[0], this.authToken);
 
-            this.currentGame = server.joinGame(parameters[0], this.authToken, parameters[1]);
-            return SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE + parameters[0]
+            setGameIndicies();
+            Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
+            this.currentGame = server.joinGame(gameID.toString(), this.authToken, parameters[1]);
+            return SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE
+                    + getKeyFromValue(gameIndicies, gameID)
                     + drawBothBoardPerspective(SET_BG_COLOR_WHITE);
         } catch (ResponseException e) {
             return handleResponseException(e);
@@ -241,8 +247,10 @@ public class ChessClient {
             return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given.";
         }
         try {
-            this.currentGame = server.getGame(parameters[0], this.authToken);
-            String board = "Observing Game: " + currentGame.gameID();
+            setGameIndicies();
+            Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
+            this.currentGame = server.getGame(gameID.toString(), this.authToken);
+            String board = "Observing Game: " + getKeyFromValue(gameIndicies, gameID);
             board += drawBothBoardPerspective(SET_BG_COLOR_DARK_GREEN);
             return board;
         } catch (ResponseException e) {
@@ -400,7 +408,7 @@ public class ChessClient {
         String whitePlayer = (game.whiteUsername() == null) ? "Available" : game.whiteUsername();
         String blackPlayer = (game.blackUsername() == null) ? "Available" : game.blackUsername();
         return SET_TEXT_COLOR_MAGENTA + "   Name: " + SET_TEXT_COLOR_BLUE + game.gameName()
-                + SET_TEXT_COLOR_MAGENTA + " GameID: " + SET_TEXT_COLOR_BLUE + game.gameID()
+                + SET_TEXT_COLOR_MAGENTA + " Status: " + SET_TEXT_COLOR_BLUE + "Ongoing"
                 + SET_TEXT_COLOR_MAGENTA + "\n      WhiteTeam: " + SET_TEXT_COLOR_BLUE + whitePlayer
                 + SET_TEXT_COLOR_MAGENTA + " BlackTeam: " + SET_TEXT_COLOR_BLUE + blackPlayer + "\n";
     }
@@ -414,6 +422,15 @@ public class ChessClient {
      */
     public String getState() {
         return this.state.toString();
+    }
+
+    private void setGameIndicies() throws ResponseException {
+        GameData[] games = server.listGames(this.authToken);
+        int i = 1;
+        for (GameData game : games) {
+            gameIndicies.put(i, game.gameID());
+            i++;
+        }
     }
 
 
@@ -448,7 +465,16 @@ public class ChessClient {
      * @return The error message.
      */
     private String handleOtherExceptions(Exception e) {
-        String message = e.getMessage();
-        return SET_TEXT_COLOR_YELLOW + "Invalid argument given, returned error message: " + message;
+        return SET_TEXT_COLOR_YELLOW + "Invalid argument given, check help manual for valid arguments";
+    }
+
+
+    public static <K, V> K getKeyFromValue(Map<K, V> map, V value) {
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            if (entry.getValue().equals(value)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 }
