@@ -126,7 +126,7 @@ public class ServerFacade {
                 return game;
             }
         }
-        throw new ResponseException(403, "Game not found.");
+        throw new ResponseException(403, "Game not found");
     }
 
     /**
