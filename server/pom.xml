@@ -103,6 +103,11 @@
             <scope>system</scope>
             <systemPath>${pom.basedir}/lib/passoff-dependencies.jar</systemPath>
         </dependency>
+        <dependency>
+    <groupId>XX</groupId>
+    <artifactId>shared</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
     </dependencies>
 
 

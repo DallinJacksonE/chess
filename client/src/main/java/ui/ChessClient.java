@@ -22,6 +22,7 @@ public class ChessClient {
     private String authToken = null;
     private GameData currentGame = null;
     private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
+    private ChessGame.TeamColor playerPerspective = null;
 
     /**
      * Constructor for ChessClient.
@@ -47,8 +48,7 @@ public class ChessClient {
             return switch (this.state) {
                 case SIGNEDOUT -> handleSignedOut(cmd, params);
                 case SIGNEDIN -> handleSignedIn(cmd, params);
-                case PLAYINGGAME -> handlePlayingGame(cmd);
-                default -> throw new ResponseException(500, "Invalid game state detected, possible tampering.");
+                case INGAMEROOM -> handlePlayingGame(cmd);
             };
         } catch (ResponseException ex) {
             return ex.getMessage();
@@ -95,7 +95,12 @@ public class ChessClient {
      */
     private String handlePlayingGame(String cmd) {
         return switch (cmd) {
-            case "makemove", "leave", "resign" -> help();
+            case "help" -> help();
+            case "leave" -> help();
+            case "resign" -> help();
+            case "redraw" -> help();
+            case "move" -> help();
+            case "highlight", "show", "hl" -> help();
             default -> help();
         };
     }
@@ -302,20 +307,14 @@ public class ChessClient {
                     - playGame <gameID> <desiredColor> (join specified game as given team color)
                     - observeGame <gameID> (watch a game)
                     """;
-            case PLAYINGGAME -> """
+            case INGAMEROOM -> """
                     Commands:
                     - help
-                    - move <yourPieceCoordinates> <targetCoordinates> (move a3 a4)
-                    - highlight <pieceCoordinates>
                     - redraw (redraws the board)
+                    - move <yourPieceCoordinates> <targetCoordinates> (move a3 a4)
+                    - highlight <pieceCoordinates> (b2)
                     - leave (leave your pieces for someone else to take over)
                     - resign (ends the game, declaring your opponent the winner)
-                    """;
-            case OBSERVINGGAME -> """
-                    Commands:
-                    - help
-                    - redraw (redraws the board)
-                    - stop (stop observing game)
                     """;
         };
     }
