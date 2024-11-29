@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ConnectionManager {
     public final ConcurrentHashMap<String, Connection> connections = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<String, Connection> connectionsLoggedIn = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<String, Connection> connectionsInGame = new ConcurrentHashMap<>();
 
     public void add(String visitorName, Session session) {
         var connection = new Connection(visitorName, session);
@@ -34,6 +36,14 @@ public class ConnectionManager {
         // Clean up any connections that were left open.
         for (var c : removeList) {
             connections.remove(c.visitorName);
+        }
+    }
+
+    public void broadcastToGameRoom(ArrayList<Connection> usersInGameRoom, Notification notification) throws IOException {
+        for (var c : usersInGameRoom) {
+            if (c.session.isOpen()) {
+                c.send(notification.toString());
+            }
         }
     }
 }

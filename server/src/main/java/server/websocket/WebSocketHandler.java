@@ -26,14 +26,14 @@ public class WebSocketHandler {
 
     private void enter(String visitorName, Session session) throws IOException {
         connections.add(visitorName, session);
-        var message = String.format("%s is in the shop", visitorName);
+        var message = String.format("%s logged in", visitorName);
         var notification = new Notification(Notification.Type.ARRIVAL, message);
         connections.broadcast(visitorName, notification);
     }
 
     private void exit(String visitorName) throws IOException {
         connections.remove(visitorName);
-        var message = String.format("%s left the shop", visitorName);
+        var message = String.format("%s logged out", visitorName);
         var notification = new Notification(Notification.Type.DEPARTURE, message);
         connections.broadcast(visitorName, notification);
     }
