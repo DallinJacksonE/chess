@@ -10,6 +10,7 @@ import dataaccess.*;
 import model.*;
 import spark.*;
 import com.google.gson.*;
+import server.websocket.WebSocketHandler;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -21,6 +22,7 @@ public class Server {
     private static final String USERNAME = "username";
     private static final String AUTH_HEADER = "Authorization";
     private final Service service;
+    private final WebSocketHandler webSocketHandler;
 
     public Server() {
         DataInterface db;
@@ -31,6 +33,7 @@ public class Server {
         }
 
         service = new Service(db);
+        webSocketHandler = new WebSocketHandler();
     }
 
     public int run(int desiredPort) {
@@ -52,6 +55,9 @@ public class Server {
         Spark.post(userEndpoint, this::register);
         Spark.post(sessionEndpoint, this::login);
         Spark.delete(sessionEndpoint, this::logout);
+
+        // WebSocket
+        Spark.webSocket("/ws", webSocketHandler);
 
         // Exception handler
         Spark.exception(ResponseException.class, this::exceptionHandler);
