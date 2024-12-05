@@ -89,16 +89,16 @@ public class WebSocketHandler {
                 return;
             }
             if (game.isInCheck(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
                         String.format("%s is in check", oppName));
 
             } else if (game.isInCheckmate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
                         String.format("Checkmate, %s wins!", userData.username()));
                 gameOver = true;
 
             } else if (game.isInStalemate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
                         String.format("%s in stalemate, %s wins!", oppName, userData.username()));
                 gameOver = true;
             }
@@ -118,7 +118,7 @@ public class WebSocketHandler {
             if (extraMsg != null) {
                 connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
             }
-            if (gameOver) {
+            if (Boolean.TRUE.equals(gameOver)) {
                 db.deleteGame(command.getGameID());
             }
         } catch (InvalidMoveException e) {
