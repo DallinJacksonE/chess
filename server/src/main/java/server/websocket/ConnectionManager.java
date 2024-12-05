@@ -1,7 +1,7 @@
 package server.websocket;
 
 import org.eclipse.jetty.websocket.api.Session;
-import websocketsmessages.Notification;
+import websocket.messages.ServerMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,49 +37,12 @@ public class ConnectionManager {
         }
     }
 
-    public void broadcast(String excludeVisitorName, Notification notification) throws IOException {
-        var removeList = new ArrayList<Connection>();
-        for (var c : connections.values()) {
-            if (c.session.isOpen()) {
-                if (!c.visitorName.equals(excludeVisitorName)) {
-                    c.send(notification.toString());
-                }
-            } else {
-                removeList.add(c);
-            }
-        }
 
-        // Clean up any connections that were left open.
-        for (var c : removeList) {
-            connections.remove(c.visitorName);
-        }
-    }
-
-    public void broadcastToNonGameRoom(Notification notification) throws IOException {
-        var removeList = new ArrayList<Connection>();
-        for (var connection : connections.values()) {
-            boolean inGameRoom = connectionsInGame.values().stream()
-                    .anyMatch(gameRoom -> gameRoom.contains(connection));
-            if (!inGameRoom) {
-                if (connection.session.isOpen()) {
-                    connection.send(notification.toString());
-                } else {
-                    removeList.add(connection);
-                }
-            }
-        }
-
-        // Clean up any connections that were left open.
-        for (var connection : removeList) {
-            connections.remove(connection.visitorName);
-        }
-    }
-
-    public void broadcastToGameRoom(String gameID, Notification notification) throws IOException {
+    public void broadcastToGameRoom(String gameID, ServerMessage message) throws IOException {
         ArrayList<Connection> usersInGameRoom = connectionsInGame.get(gameID);
         for (var c : usersInGameRoom) {
             if (c.session.isOpen()) {
-                c.send(notification.toString());
+                c.send(message.toString());
             }
         }
     }

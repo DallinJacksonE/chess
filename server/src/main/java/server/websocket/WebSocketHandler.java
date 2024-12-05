@@ -1,16 +1,19 @@
 package server.websocket;
 
 import chess.ChessGame;
+import chess.InvalidMoveException;
 import com.google.gson.Gson;
-import chess.exception.ResponseException;
-import com.mysql.cj.util.EscapeTokenizer;
 import dataaccess.DataInterface;
 import model.GameData;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
-import websocketsmessages.Action;
-import websocketsmessages.Notification;
+import websocket.commands.UserGameCommand;
+import websocket.messages.ErrorServerMessage;
+import websocket.messages.LoadServerMessage;
+import websocket.messages.NotificationServerMessage;
+import websocket.messages.ServerMessage;
+import websocket.commands.Action;
 import java.io.IOException;
 
 
@@ -26,51 +29,66 @@ public class WebSocketHandler {
 
     @OnWebSocketMessage
     public void onMessage(Session session, String message) throws IOException {
-        Action action = new Gson().fromJson(message, Action.class);
-        switch (action.type()) {
-            case JOINGAME -> joinGame(action.visitorName(), session, action);
-            case LEAVEGAME -> leaveGame(action.visitorName());
-            case MAKEMOVE -> makeMove(action.visitorName(), session, action);
+        UserGameCommand command = new Gson().fromJson(message, UserGameCommand.class);
+        switch (command.getCommandType()) {
+            case CONNECT -> joinGame(session, command);
+            case LEAVE -> leaveGame(session, command);
+            case MAKE_MOVE -> makeMove(session, command);
         }
     }
 
-    private void makeMove(String visitorName, Session session, Action action) throws IOException {
-        connections.add(visitorName, session);
-        var message = String.format("%s made move", action.color());
-        var notification = new Notification(Notification.Type.MOVEMADE, message);
-        connections.broadcastToGameRoom(visitorName, notification);
+    private void makeMove(Session session, UserGameCommand command) throws IOException {
+        Action action = command.getAction();
+        connections.add(action.username(), session);
+        var message = String.format("%s made move %s", action.username(), action.move().toLetterCombo());
+        var notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message);
+        try {
+            GameData gameData = db.getGame(command.getGameID());
+            ChessGame game = gameData.game();
+            game.makeMove(command.getAction().move());
+            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(), gameData.blackUsername(),
+                    gameData.gameName(), game);
+            db.updateGame(command.getGameID(), newGame);
+            LoadServerMessage loadMessage = new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, newGame);
+            connections.broadcastToGameRoom(command.getGameID().toString(), loadMessage);
+        } catch (InvalidMoveException e) {
+            message = e.getMessage();
+            var errorMessage = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR, message);
+            session.getRemote().sendString(errorMessage.toString());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        connections.broadcastToGameRoom(command.getGameID().toString(), notification);
     }
 
-    private void joinGame(String visitorName, Session session, Action action) throws IOException {
+    private void joinGame(Session session, UserGameCommand command) throws IOException {
         try {
-            connections.add(visitorName, session);
-            connections.addToGameRoom(action.gameID().toString(), visitorName);
+            Action action = command.getAction();
+            connections.add(action.username(), session);
+            connections.addToGameRoom(command.getGameID().toString(), action.username());
+            String message;
+            //if color is null, then they are just observing and only need to be added to the room
+            if (action.color() == null) {
+                message = String.format("%s is observing", action.username());
+            } else {
+                message = String.format("%s joined game as %s", action.username(), action.color());
+            }
 
-            var message = String.format("%s joined game", visitorName);
-            Notification.Type type = (action.color() == ChessGame.TeamColor.BLACK) ?
-                    Notification.Type.BLACKPLAYERCONNECTED : Notification.Type.WHITEPLAYERCONNECTED;
-            var notification = new Notification(type, message);
-            connections.broadcastToNonGameRoom(notification);
-            connections.broadcastToGameRoom(action.gameID().toString(), notification);
+            var serverMessage = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message);
+
+            connections.broadcastToGameRoom(command.getGameID().toString(), serverMessage);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private void leaveGame(String visitorName) throws IOException {
-        connections.remove(visitorName);
-        var message = String.format("%s left game", visitorName);
-        var notification = new Notification(Notification.Type.PLAYERLEFTGAME, message);
-        connections.broadcast(visitorName, notification);
+    private void leaveGame(Session session, UserGameCommand command) throws IOException {
+        var username = command.getAction().username();
+        connections.remove(username);
+        var message = String.format("%s left game", username);
+        var notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message);
+        connections.broadcastToGameRoom(command.getGameID().toString(), notification);
     }
 
-    public void makeNoise(String petName, String sound) throws ResponseException {
-        try {
-            var message = String.format("%s says %s", petName, sound);
-            //var notification = new Notification(Notification.Type.NOISE, message);
-            //connections.broadcast("", notification);
-        } catch (Exception ex) {
-            throw new ResponseException(500, ex.getMessage());
-        }
-    }
 }

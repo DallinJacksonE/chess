@@ -2,8 +2,10 @@ package ui;
 
 
 import websocket.NotificationHandler;
-import websocketsmessages.Notification;
-
+import websocket.messages.ErrorServerMessage;
+import websocket.messages.LoadServerMessage;
+import websocket.messages.NotificationServerMessage;
+import websocket.messages.ServerMessage;
 import java.util.Scanner;
 
 import static ui.EscapeSequences.*;
@@ -34,9 +36,19 @@ public class Repl implements NotificationHandler {
         System.exit(0);
     }
 
-    public void notify(Notification notification) {
-        System.out.println(notification.message());
-        printPrompt();
+    public void notify(ServerMessage serverMessage) {
+
+        if (serverMessage instanceof NotificationServerMessage notification) {
+            System.out.println(notification.getMessage());
+        }
+        if (serverMessage instanceof LoadServerMessage load) {
+            client.currentGame = load.getGame();
+            client.redraw();
+        }
+        if (serverMessage instanceof ErrorServerMessage error) {
+            System.out.println(error.getErrorMessage());
+        }
+
     }
 
     private void printPrompt() {

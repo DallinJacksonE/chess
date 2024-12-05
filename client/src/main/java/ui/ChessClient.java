@@ -1,9 +1,9 @@
 package ui;
 
-import chess.ChessGame;
-import chess.ChessMove;
-import chess.ChessPiece;
+import chess.*;
 import chess.exception.ResponseException;
+import converters.ChessPositionConverter;
+import converters.ConvertStringToPieceType;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
@@ -27,9 +27,10 @@ public class ChessClient {
     private WebSocketFacade ws;
     private String userName = null;
     private String authToken = null;
-    private GameData currentGame = null;
-    private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
+    public GameData currentGame = null;
     private ChessGame.TeamColor playerPerspective;
+    private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
+
 
 
     /**
@@ -110,7 +111,7 @@ public class ChessClient {
             case "help" -> help();
             case "leave" -> help();
             case "resign" -> resign();
-            case "redraw" -> help();
+            case "redraw" -> redraw();
             case "move" -> move(params);
             case "highlight", "show", "hl" -> help();
             default -> help();
@@ -133,13 +134,23 @@ public class ChessClient {
         }
     }
 
-    public String move(String params[]) {
+    public String move(String[] params) {
         try {
-            ChessMove move = null;
+            int[] start = ChessPositionConverter.convertMove(params[0]);
+            int[] end = ChessPositionConverter.convertMove(params[1]);
+            String promo = (params.length == 3) ? params[2] : null;
+            ChessPosition startP = new ChessPosition(start[0], start[1]);
+            ChessPosition endP = new ChessPosition(end[0], end[1]);
+
+            ChessPiece.PieceType promotion = (promo == null) ? null : new ConvertStringToPieceType().convert(promo);
+
+            ChessMove move = new ChessMove(startP, endP, promotion);
             ws.makeMove(this.userName, move, this.currentGame.gameID(), this.playerPerspective);
-            return "move called";
+            return "";
         } catch (ResponseException e) {
             return handleResponseException(e);
+        } catch (IllegalArgumentException e) {
+            return "To promote a pawn, please enter the type of piece to promote to (move a2 a1 queen)";
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
@@ -277,7 +288,7 @@ public class ChessClient {
             setGameIndicies();
             Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
             this.currentGame = server.joinGame(gameID.toString(), this.authToken, parameters[1]);
-            ws = new WebSocketFacade(serverUrl, notificationHandler);
+            ws = new WebSocketFacade(serverUrl, notificationHandler, this.authToken);
             ChessGame.TeamColor color = "white".equalsIgnoreCase(parameters[1]) ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
             ws.joinGame(this.userName, color, gameID);
             this.playerPerspective = color;
