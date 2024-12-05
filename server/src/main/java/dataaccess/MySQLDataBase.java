@@ -76,6 +76,7 @@ public class MySQLDataBase implements DataInterface {
         return gameData.gameID();
     }
 
+    @Override
     public void deleteGame(int gameID) throws DataAccessException {
         var statement = "DELETE FROM games WHERE gameID = ?";
         executeUpdate(statement, gameID);

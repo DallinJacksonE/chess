@@ -73,7 +73,38 @@ public class WebSocketHandler {
                 session.getRemote().sendString(msg.toString());
                 return;
             }
+            ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
+            ChessGame.TeamColor oppColor = (userColor == ChessGame.TeamColor.WHITE) ? ChessGame.TeamColor.BLACK
+                    : ChessGame.TeamColor.WHITE;
+            String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername()
+                    : gameData.whiteUsername();
             game.makeMove(command.move);
+            NotificationServerMessage extraMsg = null;
+            Boolean gameOver = false;
+            // --- Check for self check, other team check, other team checkmate, and stalemate
+            if (game.isInCheck(userColor)) {
+                NotificationServerMessage msg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                        "Can't put self in check");
+                session.getRemote().sendString(msg.toString());
+                return;
+            }
+            if (game.isInCheck(oppColor)) {
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                        String.format("%s is in check", oppName));
+
+            } else if (game.isInCheckmate(oppColor)) {
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                        String.format("Checkmate, %s wins!", userData.username()));
+                gameOver = true;
+
+            } else if (game.isInStalemate(oppColor)) {
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
+                        String.format("%s in stalemate, %s wins!", oppName, userData.username()));
+                gameOver = true;
+            }
+
+
+
             GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(), gameData.blackUsername(),
                     gameData.gameName(), game);
             db.updateGame(command.getGameID(), newGame);
@@ -84,7 +115,12 @@ public class WebSocketHandler {
             var message2 = String.format("%s made move %s", userData.username(), command.move.toLetterCombo());
             var notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message2);
             connections.broadcastToGameRoom(command.getGameID().toString(), notification, userData.username());
-
+            if (extraMsg != null) {
+                connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
+            }
+            if (gameOver) {
+                db.deleteGame(command.getGameID());
+            }
         } catch (InvalidMoveException e) {
             String message3 = e.getMessage();
             var errorMessage = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR, message3);
