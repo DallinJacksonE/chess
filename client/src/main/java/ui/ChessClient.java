@@ -1,6 +1,7 @@
 package ui;
 
 import chess.ChessGame;
+import chess.ChessMove;
 import chess.ChessPiece;
 import chess.exception.ResponseException;
 import model.AuthData;
@@ -8,6 +9,9 @@ import model.GameData;
 import model.UserData;
 import serverfacade.ServerFacade;
 import ui.responseobjects.*;
+import websocket.NotificationHandler;
+import websocket.WebSocketFacade;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,20 +21,26 @@ import static ui.EscapeSequences.*;
 
 public class ChessClient {
     private final ServerFacade server;
+    private final String serverUrl;
     private State state = State.SIGNEDOUT;
+    private final NotificationHandler notificationHandler;
+    private WebSocketFacade ws;
     private String userName = null;
     private String authToken = null;
     private GameData currentGame = null;
     private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
-    private ChessGame.TeamColor playerPerspective = null;
+    private ChessGame.TeamColor playerPerspective;
+
 
     /**
      * Constructor for ChessClient.
      * @param serverUrl The URL of the server.
-     * @param repl The REPL instance.
+     * @param notificationHandler The REPL instance.
      */
-    public ChessClient(String serverUrl, Repl repl) {
+    public ChessClient(String serverUrl, NotificationHandler notificationHandler) {
         server = new ServerFacade(serverUrl);
+        this.serverUrl = serverUrl;
+        this.notificationHandler = notificationHandler;
     }
 
     // -------------------------- Evaluating the Command Passed from Repl --------------------------------
@@ -48,7 +58,7 @@ public class ChessClient {
             return switch (this.state) {
                 case SIGNEDOUT -> handleSignedOut(cmd, params);
                 case SIGNEDIN -> handleSignedIn(cmd, params);
-                case INGAMEROOM -> handlePlayingGame(cmd);
+                case INGAMEROOM -> handlePlayingGame(cmd, params);
             };
         } catch (ResponseException ex) {
             return ex.getMessage();
@@ -90,20 +100,56 @@ public class ChessClient {
 
     /**
      * Handles commands when the user is playing a game.
-     * @param cmd The command.
+     *
+     * @param cmd    The command.
+     * @param params
      * @return The result of the command execution.
      */
-    private String handlePlayingGame(String cmd) {
+    private String handlePlayingGame(String cmd, String[] params) {
         return switch (cmd) {
             case "help" -> help();
             case "leave" -> help();
-            case "resign" -> help();
+            case "resign" -> resign();
             case "redraw" -> help();
-            case "move" -> help();
+            case "move" -> move(params);
             case "highlight", "show", "hl" -> help();
             default -> help();
         };
     }
+
+    // -------------------------- Talking to Websocket Facade --------------------------------
+    public String resign() {
+        try {
+            // add a confirmation to wanting to resign
+            ws.resign(this.userName, this.currentGame.gameID(), this.playerPerspective);
+            this.state = State.SIGNEDIN;
+            this.playerPerspective = null;
+            this.currentGame = null;
+            return "Resigned from game.";
+        } catch (ResponseException e) {
+            return handleResponseException(e);
+        } catch (Exception e) {
+            return handleOtherExceptions(e);
+        }
+    }
+
+    public String move(String params[]) {
+        try {
+            ChessMove move = null;
+            ws.makeMove(this.userName, move, this.currentGame.gameID(), this.playerPerspective);
+            return "move called";
+        } catch (ResponseException e) {
+            return handleResponseException(e);
+        } catch (Exception e) {
+            return handleOtherExceptions(e);
+        }
+    }
+
+    public String redraw() {
+        return drawBoard(this.playerPerspective);
+    }
+
+
 
     // -------------------------- Talking to Server Facade --------------------------------
 
@@ -231,9 +277,15 @@ public class ChessClient {
             setGameIndicies();
             Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
             this.currentGame = server.joinGame(gameID.toString(), this.authToken, parameters[1]);
+            ws = new WebSocketFacade(serverUrl, notificationHandler);
+            ChessGame.TeamColor color = "white".equalsIgnoreCase(parameters[1]) ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
+            ws.joinGame(this.userName, color, gameID);
+            this.playerPerspective = color;
+            this.state = State.INGAMEROOM;
+
             return SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE
                     + getKeyFromValue(gameIndicies, gameID)
-                    + drawBothBoardPerspective(SET_BG_COLOR_WHITE);
+                    + drawBoard(this.playerPerspective);
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
@@ -475,5 +527,11 @@ public class ChessClient {
             }
         }
         return null;
+    }
+
+    private void assertSignedIn() throws ResponseException {
+        if (state == State.SIGNEDOUT) {
+            throw new ResponseException(400, "You must sign in");
+        }
     }
 }

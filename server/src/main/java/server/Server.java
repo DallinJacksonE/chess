@@ -33,7 +33,7 @@ public class Server {
         }
 
         service = new Service(db);
-        webSocketHandler = new WebSocketHandler();
+        webSocketHandler = new WebSocketHandler(db);
     }
 
     public int run(int desiredPort) {
@@ -47,6 +47,9 @@ public class Server {
         Spark.port(desiredPort);
         Spark.staticFiles.location("web");
 
+        // WebSocket
+        Spark.webSocket("/ws", webSocketHandler);
+
         // API CALLS
         Spark.delete(dbEndpoint, this::clear);
         Spark.get(gameEndpoint, this::listGames);
@@ -56,8 +59,7 @@ public class Server {
         Spark.post(sessionEndpoint, this::login);
         Spark.delete(sessionEndpoint, this::logout);
 
-        // WebSocket
-        Spark.webSocket("/ws", webSocketHandler);
+
 
         // Exception handler
         Spark.exception(ResponseException.class, this::exceptionHandler);
