@@ -145,7 +145,7 @@ public class ChessClient {
             ChessPiece.PieceType promotion = (promo == null) ? null : new ConvertStringToPieceType().convert(promo);
 
             ChessMove move = new ChessMove(startP, endP, promotion);
-            ws.makeMove(this.userName, move, this.currentGame.gameID(), this.playerPerspective);
+            ws.makeMove(move, this.currentGame.gameID());
             return "";
         } catch (ResponseException e) {
             return handleResponseException(e);

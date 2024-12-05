@@ -76,6 +76,11 @@ public class MySQLDataBase implements DataInterface {
         return gameData.gameID();
     }
 
+    public void deleteGame(int gameID) throws DataAccessException {
+        var statement = "DELETE FROM games WHERE gameID = ?";
+        executeUpdate(statement, gameID);
+    }
+
     @Override
     public GameData getGame(int gameID) throws DataAccessException {
         try (var conn = DatabaseManager.getConnection()) {
@@ -126,9 +131,15 @@ public class MySQLDataBase implements DataInterface {
 
     @Override
     public void updateGame(int gameID, GameData newGameData) throws DataAccessException {
-        var json = newGameData.toJson();
-        var statement = "UPDATE games SET whitePlayer = ?, blackPlayer = ?, json = ? WHERE gameID = ?";
-        executeUpdate(statement, newGameData.whiteUsername(), newGameData.blackUsername(), json, gameID);
+        if (getGame(gameID) == null) {
+            throw new DataAccessException(404, "Game not found");
+        }
+        if (newGameData == null) {
+            throw new DataAccessException(404, "Game not found");
+        }
+        String json = newGameData.game().toJson();
+        var statement = "UPDATE games SET whitePlayer = ?, blackPlayer = ?, gameName = ?, json = ? WHERE gameID = ?";
+        executeUpdate(statement, newGameData.whiteUsername(), newGameData.blackUsername(), newGameData.gameName(), json, gameID);
     }
 
     @Override
@@ -185,7 +196,7 @@ public class MySQLDataBase implements DataInterface {
                         case String p -> ps.setString(i + 1, p);
                         case Integer p -> ps.setInt(i + 1, p);
                         case UserData p -> ps.setString(i + 1, p.toString());
-                        case GameData p -> ps.setString(i + 1, p.toString());
+                        case GameData p -> ps.setString(i + 1, p.toJson());
                         case AuthData p -> ps.setString(i + 1, p.toString());
                         case null -> ps.setNull(i + 1, NULL);
 

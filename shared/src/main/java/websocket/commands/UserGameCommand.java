@@ -10,18 +10,18 @@ import java.util.Objects;
  * Note: You can add to this class, but you should not alter the existing
  * methods.
  */
-public class UserGameCommand {
+public class  UserGameCommand {
 
     private final CommandType commandType;
     private final String authToken;
     private final Integer gameID;
-    private final Action action;
 
-    public UserGameCommand(CommandType commandType, String authToken, Integer gameID, Action action) {
+
+    public UserGameCommand(CommandType commandType, String authToken, Integer gameID) {
         this.commandType = commandType;
         this.authToken = authToken;
         this.gameID = gameID;
-        this.action = action;
+
     }
 
     public enum CommandType {
@@ -43,7 +43,7 @@ public class UserGameCommand {
         return gameID;
     }
 
-    public Action getAction() { return action; }
+
 
     @Override
     public boolean equals(Object o) {

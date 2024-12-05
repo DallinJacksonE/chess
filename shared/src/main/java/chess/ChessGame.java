@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Objects;
 
 
 /**
@@ -215,7 +216,15 @@ public class ChessGame {
         return new Gson().toJson(this);
     }
 
-    public static ChessGame fromJson(String json) {
-        return new Gson().fromJson(json, ChessGame.class);
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) {return false;}
+        ChessGame chessGame = (ChessGame) o;
+        return teamTurn == chessGame.teamTurn && Objects.equals(board, chessGame.board);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(teamTurn, board);
     }
 }

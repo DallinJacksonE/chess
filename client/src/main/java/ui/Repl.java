@@ -1,6 +1,8 @@
 package ui;
 
 
+import com.google.gson.Gson;
+import model.GameData;
 import websocket.NotificationHandler;
 import websocket.messages.ErrorServerMessage;
 import websocket.messages.LoadServerMessage;
@@ -36,17 +38,28 @@ public class Repl implements NotificationHandler {
         System.exit(0);
     }
 
-    public void notify(ServerMessage serverMessage) {
+    public void notify(ServerMessage serverMessage, String message) {
+        try {
+            switch (serverMessage.getServerMessageType()) {
+                case NOTIFICATION -> {
+                    NotificationServerMessage nMessage = new Gson().fromJson(message, NotificationServerMessage.class);
+                    System.out.println(nMessage.getMessage());
+                }
+                case ERROR -> {
+                    ErrorServerMessage nMessage = new Gson().fromJson(message, ErrorServerMessage.class);
+                    System.out.println(nMessage.getErrorMessage());
+                    printPrompt();
+                }
+                case LOAD_GAME -> {
+                    LoadServerMessage lMessage = new Gson().fromJson(message, LoadServerMessage.class);
+                    client.currentGame = lMessage.getGame();
+                    client.redraw();
 
-        if (serverMessage instanceof NotificationServerMessage notification) {
-            System.out.println(notification.getMessage());
-        }
-        if (serverMessage instanceof LoadServerMessage load) {
-            client.currentGame = load.getGame();
-            client.redraw();
-        }
-        if (serverMessage instanceof ErrorServerMessage error) {
-            System.out.println(error.getErrorMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            printPrompt();
         }
 
     }

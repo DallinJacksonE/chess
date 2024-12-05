@@ -106,22 +106,90 @@ class DataAccessTests {
         assertEquals(3, db.listGames().size());
     }
 
+//    @Test
+//    void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
+//        ChessGame newChessGame = new ChessGame();
+//        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
+//        db.createGame(newGame);
+//        ChessGame anotherChessGame = new ChessGame();
+//        anotherChessGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
+//        GameData newGame2 = new GameData(2222, "tom", "bomber dill", "tree snack", anotherChessGame);
+//        db.createGame(newGame2);
+//        ChessBoard board1 = newChessGame.getBoard();
+//        ChessBoard board2 = anotherChessGame.getBoard();
+//        assertNotEquals(board2, board1);
+//        db.updateGame(1111, new GameData(1111, "username", "bob", "WillWin", anotherChessGame));
+//        board1 = db.getGame(1111).game().getBoard();
+//        board2 = db.getGame(2222).game().getBoard();
+//        assertEquals(board2, board1);
+//    }
+
     @Test
-    void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
-        ChessGame newChessGame = new ChessGame();
-        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
-        db.createGame(newGame);
-        ChessGame anotherChessGame = new ChessGame();
-        anotherChessGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
-        GameData newGame2 = new GameData(2222, "tom", "bomber dill", "tree snack", anotherChessGame);
-        db.createGame(newGame2);
-        ChessBoard board1 = newChessGame.getBoard();
-        ChessBoard board2 = anotherChessGame.getBoard();
-        assertNotEquals(board2, board1);
-        db.updateGame(1111, new GameData(1111, "username", "bob", "WillWin", anotherChessGame));
-        board1 = db.getGame(1111).game().getBoard();
-        board2 = db.getGame(2222).game().getBoard();
-        assertEquals(board2, board1);
+    void updateGameValid() throws DataAccessException, InvalidMoveException {
+        ChessGame initialGame = new ChessGame();
+        GameData initialGameData = new GameData(1111, "username", "bob", "InitialGame", initialGame);
+        db.createGame(initialGameData);
+
+        ChessGame updatedGame = new ChessGame();
+        updatedGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
+        GameData updatedGameData = new GameData(1111, "username", "bob", "UpdatedGame", updatedGame);
+        db.updateGame(1111, updatedGameData);
+
+        GameData retrievedGameData = db.getGame(1111);
+        assertEquals(updatedGameData.game().getBoard(), retrievedGameData.game().getBoard());
+        assertEquals("UpdatedGame", retrievedGameData.gameName());
+    }
+
+    @Test
+    void updateGameNonExistent() {
+        ChessGame newGame = new ChessGame();
+        GameData newGameData = new GameData(9999, "username", "bob", "NonExistentGame", newGame);
+        assertThrows(DataAccessException.class, () -> db.updateGame(9999, newGameData));
+    }
+
+    @Test
+    void updateGameNullGameData() {
+        assertThrows(DataAccessException.class, () -> db.updateGame(1111, null));
+    }
+
+    @Test
+    void updateGameInvalidMove() throws DataAccessException {
+        ChessGame initialGame = new ChessGame();
+        GameData initialGameData = new GameData(1111, "username", "bob", "InitialGame", initialGame);
+        db.createGame(initialGameData);
+
+        ChessGame updatedGame = new ChessGame();
+        assertThrows(InvalidMoveException.class, () -> updatedGame.makeMove(new ChessMove(new ChessPosition(9, 9), new ChessPosition(10, 10), null)));
+    }
+
+    @Test
+    void updateGameWithSameData() throws DataAccessException {
+        ChessGame initialGame = new ChessGame();
+        GameData initialGameData = new GameData(1111, "username", "bob", "InitialGame", initialGame);
+        db.createGame(initialGameData);
+
+        db.updateGame(1111, initialGameData);
+        GameData retrievedGameData = db.getGame(1111);
+        assertEquals(initialGameData.game().getBoard(), retrievedGameData.game().getBoard());
+        assertEquals("InitialGame", retrievedGameData.gameName());
+    }
+
+    @Test
+    void updateGameWithDifferentUsers() throws DataAccessException, InvalidMoveException {
+        ChessGame initialGame = new ChessGame();
+        GameData initialGameData = new GameData(1111, "username", "bob", "InitialGame", initialGame);
+        db.createGame(initialGameData);
+
+        ChessGame updatedGame = new ChessGame();
+        updatedGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
+        GameData updatedGameData = new GameData(1111, "alice", "charlie", "UpdatedGame", updatedGame);
+        db.updateGame(1111, updatedGameData);
+
+        GameData retrievedGameData = db.getGame(1111);
+        assertEquals("alice", retrievedGameData.whiteUsername());
+        assertEquals("charlie", retrievedGameData.blackUsername());
+        assertEquals(updatedGameData.game().getBoard(), retrievedGameData.game().getBoard());
+        assertEquals("UpdatedGame", retrievedGameData.gameName());
     }
 
     @Test
