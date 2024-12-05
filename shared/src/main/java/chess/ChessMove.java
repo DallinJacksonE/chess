@@ -61,6 +61,16 @@ public class ChessMove {
                 && promotionPiece == chessMove.promotionPiece;
     }
 
+    public String toLetterCombo() {
+        return positionToLetter(startPosition) + " to " + positionToLetter(endPosition);
+    }
+
+    private String positionToLetter(ChessPosition position) {
+        char column = (char) ('a' + position.getColumn());
+        int row = position.getRow() + 1;
+        return "" + column + row;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(startPosition, endPosition, promotionPiece);

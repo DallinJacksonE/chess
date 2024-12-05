@@ -28,30 +28,30 @@ public class WebSocketHandler {
     public void onMessage(Session session, String message) throws IOException {
         Action action = new Gson().fromJson(message, Action.class);
         switch (action.type()) {
-            case JOINGAME -> joinGame(action.visitorName(), session, action.gameID(), action.color());
+            case JOINGAME -> joinGame(action.visitorName(), session, action);
             case LEAVEGAME -> leaveGame(action.visitorName());
-            case MAKEMOVE -> makeMove(action.visitorName(), session, action.gameID(), action.color());
+            case MAKEMOVE -> makeMove(action.visitorName(), session, action);
         }
     }
 
-    private void makeMove(String visitorName, Session session, Integer gameID, ChessGame.TeamColor color) throws IOException {
+    private void makeMove(String visitorName, Session session, Action action) throws IOException {
         connections.add(visitorName, session);
-        var message = String.format("%s made move", color);
+        var message = String.format("%s made move", action.color());
         var notification = new Notification(Notification.Type.MOVEMADE, message);
         connections.broadcastToGameRoom(visitorName, notification);
     }
 
-    private void joinGame(String visitorName, Session session, Integer gameID, ChessGame.TeamColor color) throws IOException {
+    private void joinGame(String visitorName, Session session, Action action) throws IOException {
         try {
             connections.add(visitorName, session);
-            connections.addToGameRoom(gameID.toString(), visitorName);
+            connections.addToGameRoom(action.gameID().toString(), visitorName);
 
             var message = String.format("%s joined game", visitorName);
-            Notification.Type type = (color == ChessGame.TeamColor.BLACK) ?
+            Notification.Type type = (action.color() == ChessGame.TeamColor.BLACK) ?
                     Notification.Type.BLACKPLAYERCONNECTED : Notification.Type.WHITEPLAYERCONNECTED;
             var notification = new Notification(type, message);
             connections.broadcastToNonGameRoom(notification);
-            connections.broadcastToGameRoom(gameID.toString(), notification);
+            connections.broadcastToGameRoom(action.gameID().toString(), notification);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
