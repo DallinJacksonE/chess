@@ -28,6 +28,7 @@ public class ChessClient {
     private String userName = null;
     private String authToken = null;
     public GameData currentGame = null;
+    private Boolean resignCheck = false;
     private ChessGame.TeamColor playerPerspective;
     private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
 
@@ -121,12 +122,17 @@ public class ChessClient {
     // -------------------------- Talking to Websocket Facade --------------------------------
     public String resign() {
         try {
-            // add a confirmation to wanting to resign
-            ws.resign(this.userName, this.currentGame.gameID(), this.playerPerspective);
-            this.state = State.SIGNEDIN;
-            this.playerPerspective = null;
-            this.currentGame = null;
-            return "Resigned from game.";
+            if (Boolean.TRUE.equals(this.resignCheck)) {
+                ws.resign(this.userName, this.currentGame.gameID(), this.playerPerspective);
+                this.state = State.SIGNEDIN;
+                this.playerPerspective = null;
+                this.currentGame = null;
+                this.resignCheck = false;
+                return "Resigned from game.";
+            } else {
+                this.resignCheck = true;
+                return "Please enter the resign command again to confirm resignation";
+            }
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
