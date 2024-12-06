@@ -15,8 +15,10 @@ import java.util.Objects;
  */
 public class ChessGame {
 
+    public Boolean gameOver = false;
     private TeamColor teamTurn;
     private ChessBoard board = new ChessBoard();
+
 
     public ChessGame() {
         //White goes first
@@ -178,6 +180,11 @@ public class ChessGame {
         Collection<ChessMove> teamMoves = teamMoves(teamColor);
         return teamMoves.isEmpty() && !isInCheck(teamColor);
     }
+
+    public void setGameOver(boolean gameOver) {
+        this.gameOver = gameOver;
+    }
+
 
     private Collection<ChessMove> teamMoves(TeamColor teamColor) {
         Collection<ChessMove> teamMoves = new ArrayList<>();

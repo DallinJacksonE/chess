@@ -52,7 +52,7 @@ public class WebSocketFacade extends Endpoint {
 
     public void resign(Integer gameID) throws ResponseException {
         sendCommand(new UserGameCommand(UserGameCommand.CommandType.RESIGN, this.token, gameID));
-        closeSession();
+
     }
 
     public void joinGame(ChessGame.TeamColor color, Integer gameID) throws ResponseException {
@@ -65,6 +65,7 @@ public class WebSocketFacade extends Endpoint {
 
     public void leaveGame(Integer gameID) throws ResponseException {
         sendCommand(new UserGameCommand(UserGameCommand.CommandType.LEAVE, this.token, gameID));
+        closeSession();
     }
 
     private void sendCommand(UserGameCommand command) throws ResponseException {

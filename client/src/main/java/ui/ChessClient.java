@@ -87,18 +87,20 @@ public class ChessClient {
                 ws.resign(currentGame.gameID());
             } else {
                 resignCheck = true;
-                return "Please enter the resign command again to confirm resignation";
+                return "Please enter the resign command again to confirm resignation, \nor enter a different command" +
+                        " to cancel resignation";
             }
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
-        resetGame();
-        return "Resigned from game";
+
+        return "";
     }
 
     public String move(String[] params) {
+        resignCheck = false;
         try {
             int[] start = ChessPositionConverter.convertMove(params[0]);
             int[] end = ChessPositionConverter.convertMove(params[1]);
@@ -117,6 +119,7 @@ public class ChessClient {
     }
 
     public String leave() {
+        resignCheck = false;
         try {
             ws.leaveGame(currentGame.gameID());
         } catch (ResponseException e) {
@@ -127,10 +130,12 @@ public class ChessClient {
     }
 
     public String redraw() {
+        resignCheck = false;
         return drawBoard(playerPerspective);
     }
 
     public String highlight(String[] params) {
+        resignCheck = false;
         int[] start = ChessPositionConverter.convertMove(params[0]);
         return drawBoard(playerPerspective, new ChessPosition(start[0], start[1]));
     }
@@ -263,6 +268,7 @@ public class ChessClient {
     }
 
     public String help() {
+        resignCheck = false;
         return switch (state) {
             case SIGNEDOUT -> SET_TEXT_COLOR_MAGENTA + """
                     Commands:
@@ -366,8 +372,9 @@ public class ChessClient {
     private static String listGamesDisplay(GameData game) {
         String whitePlayer = (game.whiteUsername() == null) ? "Available" : game.whiteUsername();
         String blackPlayer = (game.blackUsername() == null) ? "Available" : game.blackUsername();
+        String status = game.game().gameOver ? "Finished" : "Ongoing";
         return SET_TEXT_COLOR_MAGENTA + "   Name: " + SET_TEXT_COLOR_BLUE + game.gameName()
-                + SET_TEXT_COLOR_MAGENTA + " Status: " + SET_TEXT_COLOR_BLUE + "Ongoing"
+                + SET_TEXT_COLOR_MAGENTA + " Status: " + SET_TEXT_COLOR_BLUE + status
                 + SET_TEXT_COLOR_MAGENTA + "\n      WhiteTeam: " + SET_TEXT_COLOR_BLUE + whitePlayer
                 + SET_TEXT_COLOR_MAGENTA + " BlackTeam: " + SET_TEXT_COLOR_BLUE + blackPlayer + "\n";
     }

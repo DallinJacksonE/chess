@@ -58,6 +58,10 @@ public class WebSocketHandler {
             }
 
             ChessGame game = gameData.game();
+            if (Boolean.TRUE.equals(game.gameOver)) {
+                sendError(session, "Game has finished, please leave game and join a new one");
+                return;
+            }
             if (connections.getConnection(userData.username()).color != game.getTeamTurn()) {
                 sendError(session, "ERROR other team turn");
                 return;
@@ -68,6 +72,9 @@ public class WebSocketHandler {
                     : ChessGame.TeamColor.WHITE;
             String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername()
                     : gameData.whiteUsername();
+
+
+
             game.makeMove(command.move);
 
             NotificationServerMessage extraMsg = null;
@@ -90,6 +97,7 @@ public class WebSocketHandler {
                 gameOver = true;
             }
 
+            game.setGameOver(gameOver);
             GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(),
                     gameData.blackUsername(), gameData.gameName(), game);
             db.updateGame(command.getGameID(), newGame);
@@ -104,11 +112,9 @@ public class WebSocketHandler {
             if (extraMsg != null) {
                 connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
             }
-            if (gameOver) {
-                db.deleteGame(command.getGameID());
-            }
+
         } catch (InvalidMoveException e) {
-            sendError(session, e.getMessage());
+            sendError(session, "Invalid move");
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -124,6 +130,11 @@ public class WebSocketHandler {
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
                 sendError(session, INVALIDIDERROR);
+                return;
+            }
+
+            if (Boolean.TRUE.equals(gameData.game().gameOver)) {
+                sendError(session, "Game has finished, please leave game and join a new one");
                 return;
             }
 
@@ -160,22 +171,26 @@ public class WebSocketHandler {
             ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
             String username = userData.username();
             GameData game = gameData;
-
-            if (userColor == connections.getConnection(username).color) {
-                if (userColor == ChessGame.TeamColor.WHITE && username.equals(game.whiteUsername())) {
-                    game = new GameData(game.gameID(), null,
-                            game.blackUsername(), game.gameName(), game.game());
-                    db.updateGame(game.gameID(), game);
-                } else if (userColor == ChessGame.TeamColor.BLACK &&
-                        username.equals(game.blackUsername())) {
-                    game = new GameData(game.gameID(), game.whiteUsername(), null,
-                            game.gameName(), game.game());
-                    db.updateGame(game.gameID(), game);
-                }
-            } else {
-                sendError(session, "ERROR cannot make other user leave");
+            if (Boolean.TRUE.equals(gameData.game().gameOver)) {
+                String message = String.format("%s left game", username);
+                connections.remove(username);
+                connections.removeFromGameRoom(command.getGameID().toString(), username);
+                connections.broadcastToGameRoom(command.getGameID().toString(),
+                        new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), username);
                 return;
             }
+
+
+            if (userColor == ChessGame.TeamColor.WHITE && username.equals(game.whiteUsername())) {
+                game = new GameData(game.gameID(), null,
+                        game.blackUsername(), game.gameName(), game.game());
+                db.updateGame(game.gameID(), game);
+            } else if (userColor == ChessGame.TeamColor.BLACK && username.equals(game.blackUsername())) {
+                game = new GameData(game.gameID(), game.whiteUsername(), null,
+                        game.gameName(), game.game());
+                db.updateGame(game.gameID(), game);
+            }
+
 
             String message = String.format("%s left game", username);
             connections.remove(username);
@@ -201,16 +216,21 @@ public class WebSocketHandler {
                 return;
             }
 
+            if (Boolean.TRUE.equals(gameData.game().gameOver)) {
+                sendError(session, "ERROR Game has finished, cannot resign");
+                return;
+            }
+
             boolean equals = Objects.equals(userData.username(), gameData.whiteUsername());
             if (!equals && !Objects.equals(userData.username(), gameData.blackUsername())) {
                 sendError(session, "ERROR cannot resign while observing");
                 return;
             }
 
-            if (connections.connectionsInGame.get(command.getGameID().toString()) == null) {
-                sendError(session, "ERROR cannot resign, game has been decided");
-                return;
-            }
+            gameData.game().setGameOver(true);
+            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(),
+                    gameData.blackUsername(), gameData.gameName(), gameData.game());
+            db.updateGame(command.getGameID(), newGame);
 
             String winner = equals ? gameData.blackUsername() : gameData.whiteUsername();
             NotificationServerMessage msg = new NotificationServerMessage(
@@ -218,8 +238,6 @@ public class WebSocketHandler {
                             "%s resigned, %s wins! Please leave game to join a new one",
                     userData.username(), winner));
             connections.broadcastToGameRoom(command.getGameID().toString(), msg);
-            connections.removeAllFromGameRoom(command.getGameID().toString());
-            db.deleteGame(command.getGameID());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
