@@ -6,8 +6,6 @@ import com.google.gson.Gson;
 import chess.exception.ResponseException;
 import websocket.commands.MakeMoveCommand;
 import websocket.commands.UserGameCommand;
-import websocket.commands.Action;
-import websocket.messages.NotificationServerMessage;
 import websocket.messages.ServerMessage;
 
 import javax.websocket.*;
@@ -65,7 +63,7 @@ public class WebSocketFacade extends Endpoint {
         }
     }
 
-    public void resign(String visitorName, Integer gameID, ChessGame.TeamColor color) throws ResponseException {
+    public void resign(Integer gameID, ChessGame.TeamColor color) throws ResponseException {
         try {
 
             UserGameCommand command = new UserGameCommand(
@@ -77,7 +75,7 @@ public class WebSocketFacade extends Endpoint {
         }
     }
 
-    public void joinGame(String visitorName, ChessGame.TeamColor color, Integer gameID) throws ResponseException {
+    public void joinGame(ChessGame.TeamColor color, Integer gameID) throws ResponseException {
         try {
 
             UserGameCommand command = new UserGameCommand(
@@ -88,11 +86,20 @@ public class WebSocketFacade extends Endpoint {
         }
     }
 
-    public void observeGame(String visitorName, Integer gameID) throws ResponseException {
+    public void observeGame(Integer gameID) throws ResponseException {
         try {
-
             UserGameCommand command = new UserGameCommand(
                     UserGameCommand.CommandType.CONNECT, this.token, gameID);
+            this.session.getBasicRemote().sendText(new Gson().toJson(command));
+        } catch (IOException ex) {
+            throw new ResponseException(500, ex.getMessage());
+        }
+    }
+
+    public void leaveGame(Integer gameID) throws ResponseException {
+        try {
+            UserGameCommand command = new UserGameCommand(
+                    UserGameCommand.CommandType.LEAVE, this.token, gameID);
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             throw new ResponseException(500, ex.getMessage());

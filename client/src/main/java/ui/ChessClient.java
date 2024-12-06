@@ -110,7 +110,7 @@ public class ChessClient {
     private String handlePlayingGame(String cmd, String[] params) {
         return switch (cmd) {
             case "help" -> help();
-            case "leave" -> help();
+            case "leave" -> leave();
             case "resign" -> resign();
             case "redraw" -> redraw();
             case "move" -> move(params);
@@ -123,12 +123,7 @@ public class ChessClient {
     public String resign() {
         try {
             if (Boolean.TRUE.equals(this.resignCheck)) {
-                ws.resign(this.userName, this.currentGame.gameID(), this.playerPerspective);
-                this.state = State.SIGNEDIN;
-                this.playerPerspective = null;
-                this.currentGame = null;
-                this.resignCheck = false;
-                return "Resigned from game.";
+                ws.resign(this.currentGame.gameID(), this.playerPerspective);
             } else {
                 this.resignCheck = true;
                 return "Please enter the resign command again to confirm resignation";
@@ -138,6 +133,11 @@ public class ChessClient {
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
+        this.state = State.SIGNEDIN;
+        this.playerPerspective = null;
+        this.currentGame = null;
+        this.resignCheck = false;
+        return "Resigned from game.";
     }
 
     public String move(String[] params) {
@@ -160,6 +160,18 @@ public class ChessClient {
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
+    }
+
+    public String leave() {
+        try {
+            ws.leaveGame(this.currentGame.gameID());
+        } catch (ResponseException e) {
+            return "Issues with leaving game";
+        }
+        this.currentGame = null;
+        this.playerPerspective = null;
+        this.state = State.SIGNEDIN;
+        return "Left game";
     }
 
     public String redraw() {
@@ -296,13 +308,11 @@ public class ChessClient {
             this.currentGame = server.joinGame(gameID.toString(), this.authToken, parameters[1]);
             ws = new WebSocketFacade(serverUrl, notificationHandler, this.authToken);
             ChessGame.TeamColor color = "white".equalsIgnoreCase(parameters[1]) ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
-            ws.joinGame(this.userName, color, gameID);
+            ws.joinGame(color, gameID);
             this.playerPerspective = color;
             this.state = State.INGAMEROOM;
-
             return SET_TEXT_COLOR_MAGENTA + "Joined game: " + SET_TEXT_COLOR_BLUE
-                    + getKeyFromValue(gameIndicies, gameID)
-                    + drawBoard(this.playerPerspective);
+                    + getKeyFromValue(gameIndicies, gameID);
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
@@ -324,8 +334,9 @@ public class ChessClient {
             setGameIndicies();
             Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
             this.currentGame = server.getGame(gameID.toString(), this.authToken);
+            this.playerPerspective = ChessGame.TeamColor.WHITE;
             String board = "Observing Game: " + getKeyFromValue(gameIndicies, gameID);
-            board += drawBothBoardPerspective(SET_BG_COLOR_DARK_GREEN);
+            ws.observeGame(gameID);
             return board;
         } catch (ResponseException e) {
             return handleResponseException(e);

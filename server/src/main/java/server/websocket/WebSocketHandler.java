@@ -69,7 +69,7 @@ public class WebSocketHandler {
             ChessGame game = gameData.game();
             if (connections.getConnection(userData.username()).color != game.getTeamTurn()) {
                 ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR cannot move other team");
+                        "ERROR other team turn");
                 session.getRemote().sendString(msg.toString());
                 return;
             }
@@ -273,7 +273,7 @@ public class WebSocketHandler {
                     String.format("%s resigned, %s wins!", userData.username(), winner));
             connections.broadcastToGameRoom(command.getGameID().toString(), msg);
             connections.removeAllFromGameRoom(command.getGameID().toString());
-
+            db.deleteGame(command.getGameID());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
