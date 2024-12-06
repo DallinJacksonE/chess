@@ -16,13 +16,6 @@ public class Connection {
         this.color = color;
     }
 
-    public Connection(String visitorName, Session session) {
-        new Connection(visitorName, session, null);
-    }
-
-    public void updateColor(ChessGame.TeamColor color) {
-        this.color = color;
-    }
 
     public void send(String msg) throws IOException {
         session.getRemote().sendString(msg);
