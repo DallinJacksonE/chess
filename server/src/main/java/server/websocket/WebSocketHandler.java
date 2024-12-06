@@ -48,7 +48,9 @@ public class WebSocketHandler {
         try {
             AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
             UserData userData = validateUserData(session, auth, db);
-            if (userData == null) return;
+            if (userData == null) {
+                return;
+            }
 
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
@@ -63,8 +65,10 @@ public class WebSocketHandler {
             }
 
             ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
-            ChessGame.TeamColor oppColor = (userColor == ChessGame.TeamColor.WHITE) ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
-            String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername() : gameData.whiteUsername();
+            ChessGame.TeamColor oppColor = (userColor == ChessGame.TeamColor.WHITE) ? ChessGame.TeamColor.BLACK
+                    : ChessGame.TeamColor.WHITE;
+            String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername()
+                    : gameData.whiteUsername();
             game.makeMove(command.move);
 
             NotificationServerMessage extraMsg = null;
@@ -75,22 +79,28 @@ public class WebSocketHandler {
                 return;
             }
             if (game.isInCheck(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s is in check", oppName));
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
+                        String.format("%s is in check", oppName));
             } else if (game.isInCheckmate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("Checkmate, %s wins!", userData.username()));
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
+                        String.format("Checkmate, %s wins!", userData.username()));
                 gameOver = true;
             } else if (game.isInStalemate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s in stalemate, %s wins!", oppName, userData.username()));
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
+                        String.format("%s in stalemate, %s wins!", oppName, userData.username()));
                 gameOver = true;
             }
 
-            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(), gameData.blackUsername(), gameData.gameName(), game);
+            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(),
+                    gameData.blackUsername(), gameData.gameName(), game);
             db.updateGame(command.getGameID(), newGame);
             LoadServerMessage loadMessage = new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, newGame);
             connections.broadcastToGameRoom(command.getGameID().toString(), loadMessage);
 
-            String moveMessage = String.format("%s made move %s", userData.username(), command.move.toLetterCombo());
-            NotificationServerMessage notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, moveMessage);
+            String moveMessage = String.format("%s made move %s", userData.username(),
+                    command.move.toLetterCombo());
+            NotificationServerMessage notification = new NotificationServerMessage(
+                    ServerMessage.ServerMessageType.NOTIFICATION, moveMessage);
             connections.broadcastToGameRoom(command.getGameID().toString(), notification, userData.username());
             if (extraMsg != null) connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
             if (gameOver) db.deleteGame(command.getGameID());
@@ -105,7 +115,9 @@ public class WebSocketHandler {
         try {
             AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
             UserData userData = validateUserData(session, auth, db);
-            if (userData == null) return;
+            if (userData == null) {
+                return;
+            }
 
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
@@ -117,9 +129,13 @@ public class WebSocketHandler {
             connections.add(userData.username(), session, userColor);
             connections.addToGameRoom(command.getGameID().toString(), userData.username(), session);
 
-            String message = (userColor == null) ? String.format("%s is observing", userData.username()) : String.format("%s joined game as %s", userData.username(), userColor);
-            connections.sendTo(userData.username(), new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, gameData));
-            connections.broadcastToGameRoom(command.getGameID().toString(), new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), userData.username());
+            String message = (userColor == null) ? String.format("%s is observing", userData.username())
+                    : String.format("%s joined game as %s", userData.username(), userColor);
+            connections.sendTo(userData.username(), new LoadServerMessage(
+                    ServerMessage.ServerMessageType.LOAD_GAME, gameData));
+            connections.broadcastToGameRoom(command.getGameID().toString(),
+                    new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message)
+                    , userData.username());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -129,7 +145,9 @@ public class WebSocketHandler {
         try {
             AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
             UserData userData = validateUserData(session, auth, db);
-            if (userData == null) return;
+            if (userData == null) {
+                return;
+            }
 
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
@@ -143,10 +161,13 @@ public class WebSocketHandler {
 
             if (userColor == connections.getConnection(username).color) {
                 if (userColor == ChessGame.TeamColor.WHITE && username.equals(game.whiteUsername())) {
-                    game = new GameData(game.gameID(), null, game.blackUsername(), game.gameName(), game.game());
+                    game = new GameData(game.gameID(), null,
+                            game.blackUsername(), game.gameName(), game.game());
                     db.updateGame(game.gameID(), game);
-                } else if (userColor == ChessGame.TeamColor.BLACK && username.equals(game.blackUsername())) {
-                    game = new GameData(game.gameID(), game.whiteUsername(), null, game.gameName(), game.game());
+                } else if (userColor == ChessGame.TeamColor.BLACK &&
+                        username.equals(game.blackUsername())) {
+                    game = new GameData(game.gameID(), game.whiteUsername(), null,
+                            game.gameName(), game.game());
                     db.updateGame(game.gameID(), game);
                 }
             } else {
@@ -157,7 +178,8 @@ public class WebSocketHandler {
             String message = String.format("%s left game", username);
             connections.remove(username);
             connections.removeFromGameRoom(command.getGameID().toString(), username);
-            connections.broadcastToGameRoom(command.getGameID().toString(), new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), username);
+            connections.broadcastToGameRoom(command.getGameID().toString(),
+                    new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), username);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -167,7 +189,9 @@ public class WebSocketHandler {
         try {
             AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
             UserData userData = validateUserData(session, auth, db);
-            if (userData == null) return;
+            if (userData == null) {
+                return;
+            }
 
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
@@ -187,7 +211,9 @@ public class WebSocketHandler {
             }
 
             String winner = equals ? gameData.blackUsername() : gameData.whiteUsername();
-            NotificationServerMessage msg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s resigned, %s wins!", userData.username(), winner));
+            NotificationServerMessage msg = new NotificationServerMessage(
+                    ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s resigned, %s wins!",
+                    userData.username(), winner));
             connections.broadcastToGameRoom(command.getGameID().toString(), msg);
             connections.removeAllFromGameRoom(command.getGameID().toString());
             db.deleteGame(command.getGameID());
