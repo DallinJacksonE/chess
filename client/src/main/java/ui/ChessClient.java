@@ -339,14 +339,8 @@ public class ChessClient {
             boardString.append(border);
 
             for (int l = cellStart; l != cellEnd; l += cellStep) {
-                boolean highlighted = false;
-                if (highlightPiece != null) {
-                    for (ChessPosition position : endPositions) {
-                        if (position.getArrayRow() == k && position.getArrayColumn() == l) {
-                            highlighted = true;
-                        }
-                    }
-                }
+                boolean highlighted = highlightPiece != null && isHighlighted(k, l, endPositions);
+
                 ChessPiece cell = row[l];
                 String background = ((l + i) % 2 != 0) ? blackCellBackground : whiteCellBackground;
                 if (highlighted) {
@@ -388,6 +382,15 @@ public class ChessClient {
             gameIndicies.put(i, game.gameID());
             i++;
         }
+    }
+
+    private boolean isHighlighted(int k, int l, Collection<ChessPosition> endPositions) {
+        for (ChessPosition position : endPositions) {
+            if (position.getArrayRow() == k && position.getArrayColumn() == l) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String handleResponseException(ResponseException e) {
