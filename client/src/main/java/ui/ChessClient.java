@@ -85,7 +85,7 @@ public class ChessClient {
     public String resign() {
         try {
             if (resignCheck) {
-                ws.resign(currentGame.gameID(), playerPerspective);
+                ws.resign(currentGame.gameID());
             } else {
                 resignCheck = true;
                 return "Please enter the resign command again to confirm resignation";
