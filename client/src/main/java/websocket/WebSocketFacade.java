@@ -13,31 +13,24 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-//need to extend Endpoint for websocket to work properly
 public class WebSocketFacade extends Endpoint {
 
-    Session session;
-    NotificationHandler notificationHandler;
-    String token;
-
+    private Session session;
+    private final NotificationHandler notificationHandler;
+    private final String token;
 
     public WebSocketFacade(String url, NotificationHandler notificationHandler, String userToken) throws ResponseException {
         try {
             this.token = userToken;
-            url = url.replace("http", "ws");
-            URI socketURI = new URI(url + "/ws");
+            URI socketURI = new URI(url.replace("http", "ws") + "/ws");
             this.notificationHandler = notificationHandler;
 
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             this.session = container.connectToServer(this, socketURI);
 
-            //set message handler
-            this.session.addMessageHandler(new MessageHandler.Whole<String>() {
-                @Override
-                public void onMessage(String message) {
-                    ServerMessage notification = new Gson().fromJson(message, ServerMessage.class);
-                    notificationHandler.notify(notification, message);
-                }
+            this.session.addMessageHandler((MessageHandler.Whole<String>) message -> {
+                ServerMessage notification = new Gson().fromJson(message, ServerMessage.class);
+                notificationHandler.notify(notification, message);
             });
 
         } catch (DeploymentException | IOException | URISyntaxException ex) {
@@ -45,65 +38,45 @@ public class WebSocketFacade extends Endpoint {
         }
     }
 
-    //Endpoint requires this method, but you don't have to do anything
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
-        //System.out.println("Connection opened");
+        // Connection opened
     }
 
-    //call these in the client with the ingame state to send messages over the line
     public void makeMove(ChessMove move, Integer gameID) throws ResponseException {
-        try {
+        sendCommand(new MakeMoveCommand(UserGameCommand.CommandType.MAKE_MOVE, this.token, gameID, move));
+    }
 
-            UserGameCommand command = new MakeMoveCommand(
-                    UserGameCommand.CommandType.MAKE_MOVE, this.token, gameID, move);
+    public void resign(Integer gameID) throws ResponseException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.RESIGN, this.token, gameID));
+        closeSession();
+    }
+
+    public void joinGame(ChessGame.TeamColor color, Integer gameID) throws ResponseException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.CONNECT, this.token, gameID));
+    }
+
+    public void observeGame(Integer gameID) throws ResponseException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.CONNECT, this.token, gameID));
+    }
+
+    public void leaveGame(Integer gameID) throws ResponseException {
+        sendCommand(new UserGameCommand(UserGameCommand.CommandType.LEAVE, this.token, gameID));
+    }
+
+    private void sendCommand(UserGameCommand command) throws ResponseException {
+        try {
             this.session.getBasicRemote().sendText(new Gson().toJson(command));
         } catch (IOException ex) {
             throw new ResponseException(500, ex.getMessage());
         }
     }
 
-    public void resign(Integer gameID, ChessGame.TeamColor color) throws ResponseException {
+    private void closeSession() throws ResponseException {
         try {
-
-            UserGameCommand command = new UserGameCommand(
-                    UserGameCommand.CommandType.RESIGN, this.token, gameID);
-            this.session.getBasicRemote().sendText(new Gson().toJson(command));
             this.session.close();
         } catch (IOException ex) {
             throw new ResponseException(500, ex.getMessage());
         }
     }
-
-    public void joinGame(ChessGame.TeamColor color, Integer gameID) throws ResponseException {
-        try {
-
-            UserGameCommand command = new UserGameCommand(
-                    UserGameCommand.CommandType.CONNECT, this.token, gameID);
-            this.session.getBasicRemote().sendText(new Gson().toJson(command));
-        } catch (IOException ex) {
-            throw new ResponseException(500, ex.getMessage());
-        }
-    }
-
-    public void observeGame(Integer gameID) throws ResponseException {
-        try {
-            UserGameCommand command = new UserGameCommand(
-                    UserGameCommand.CommandType.CONNECT, this.token, gameID);
-            this.session.getBasicRemote().sendText(new Gson().toJson(command));
-        } catch (IOException ex) {
-            throw new ResponseException(500, ex.getMessage());
-        }
-    }
-
-    public void leaveGame(Integer gameID) throws ResponseException {
-        try {
-            UserGameCommand command = new UserGameCommand(
-                    UserGameCommand.CommandType.LEAVE, this.token, gameID);
-            this.session.getBasicRemote().sendText(new Gson().toJson(command));
-        } catch (IOException ex) {
-            throw new ResponseException(500, ex.getMessage());
-        }
-    }
-
 }

@@ -22,26 +22,18 @@ public class ChessClient {
     private State state = State.SIGNEDOUT;
     private final NotificationHandler notificationHandler;
     private WebSocketFacade ws;
-    private String userName = null;
-    private String authToken = null;
-    public GameData currentGame = null;
-    private Boolean resignCheck = false;
+    private String userName;
+    private String authToken;
+    public GameData currentGame;
+    private boolean resignCheck = false;
     private ChessGame.TeamColor playerPerspective;
-    private Map<Integer, Integer> gameIndicies = new HashMap<Integer, Integer>();
+    private Map<Integer, Integer> gameIndicies = new HashMap<>();
 
-
-
-    /**
-     * Constructor for ChessClient.
-     * @param serverUrl The URL of the server.
-     * @param notificationHandler The REPL instance.
-     */
     public ChessClient(String serverUrl, NotificationHandler notificationHandler) {
-        server = new ServerFacade(serverUrl);
+        this.server = new ServerFacade(serverUrl);
         this.serverUrl = serverUrl;
         this.notificationHandler = notificationHandler;
     }
-    // -------------------------- Evaluating the Command Passed from Repl --------------------------------
 
     public String eval(String input) {
         try {
@@ -77,6 +69,7 @@ public class ChessClient {
             default -> help();
         };
     }
+
     private String handlePlayingGame(String cmd, String[] params) {
         return switch (cmd) {
             case "help" -> help();
@@ -89,13 +82,12 @@ public class ChessClient {
         };
     }
 
-    // -------------------------- Talking to Websocket Facade --------------------------------
     public String resign() {
         try {
-            if (Boolean.TRUE.equals(this.resignCheck)) {
-                ws.resign(this.currentGame.gameID(), this.playerPerspective);
+            if (resignCheck) {
+                ws.resign(currentGame.gameID(), playerPerspective);
             } else {
-                this.resignCheck = true;
+                resignCheck = true;
                 return "Please enter the resign command again to confirm resignation";
             }
         } catch (ResponseException e) {
@@ -103,10 +95,7 @@ public class ChessClient {
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
-        this.state = State.SIGNEDIN;
-        this.playerPerspective = null;
-        this.currentGame = null;
-        this.resignCheck = false;
+        resetGame();
         return "Resigned from game.";
     }
 
@@ -115,13 +104,9 @@ public class ChessClient {
             int[] start = ChessPositionConverter.convertMove(params[0]);
             int[] end = ChessPositionConverter.convertMove(params[1]);
             String promo = (params.length == 3) ? params[2] : null;
-            ChessPosition startP = new ChessPosition(start[0], start[1]);
-            ChessPosition endP = new ChessPosition(end[0], end[1]);
-
-            ChessPiece.PieceType promotion = (promo == null) ? null : new ConvertStringToPieceType().convert(promo);
-
-            ChessMove move = new ChessMove(startP, endP, promotion);
-            ws.makeMove(move, this.currentGame.gameID());
+            ChessMove move = new ChessMove(new ChessPosition(start[0], start[1]), new ChessPosition(end[0], end[1]),
+                                           (promo == null) ? null : new ConvertStringToPieceType().convert(promo));
+            ws.makeMove(move, currentGame.gameID());
             return "";
         } catch (ResponseException e) {
             return handleResponseException(e);
@@ -131,46 +116,32 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
+
     public String leave() {
         try {
-            ws.leaveGame(this.currentGame.gameID());
+            ws.leaveGame(currentGame.gameID());
         } catch (ResponseException e) {
             return "Issues with leaving game";
         }
-        this.currentGame = null;
-        this.playerPerspective = null;
-        this.state = State.SIGNEDIN;
+        resetGame();
         return "Left game";
     }
 
     public String redraw() {
-        return drawBoard(this.playerPerspective);
+        return drawBoard(playerPerspective);
     }
 
     public String highlight(String[] params) {
         int[] start = ChessPositionConverter.convertMove(params[0]);
-        ChessPosition startP = new ChessPosition(start[0], start[1]);
-        return  drawBoard(this.playerPerspective, startP);
+        return drawBoard(playerPerspective, new ChessPosition(start[0], start[1]));
     }
-    // -------------------------- Talking to Server Facade --------------------------------
-    /**
-     * Logs in the user.
-     * @param parameters The login parameters (username and password).
-     * @return The result of the login attempt.
-     * @throws ResponseException If an error occurs during login.
-     */
+
     public String login(String[] parameters) throws ResponseException {
         if (parameters.length != 2) {
             throw new ResponseException(400, SET_TEXT_COLOR_YELLOW + "Please enter your <USERNAME> <PASSWORD>");
         }
-        var username = parameters[0];
-        var password = parameters[1];
-        Map<String, String> loginData = new HashMap<>();
-        loginData.put("username", username);
-        loginData.put("password", password);
-
         try {
-            AuthData response = server.login(loginData);
+            AuthData response = server.login(Map.of("username", parameters[0], "password", parameters[1]));
             this.userName = response.username();
             this.authToken = response.authToken();
             this.state = State.SIGNEDIN;
@@ -182,23 +153,12 @@ public class ChessClient {
         }
     }
 
-    /**
-     * Registers a new user.
-     * @param parameters The registration parameters (username, email, and password).
-     * @return The result of the registration attempt.
-     * @throws ResponseException If an error occurs during registration.
-     */
     public String register(String[] parameters) throws ResponseException {
         if (parameters.length != 3) {
             throw new ResponseException(403, "Please enter your <USERNAME> <EMAIL> <PASSWORD>");
         }
-        var username = parameters[0];
-        var email = parameters[1];
-        var password = parameters[2];
-        UserData userData = new UserData(username, password, email);
-
         try {
-            AuthData response = server.register(userData);
+            AuthData response = server.register(new UserData(parameters[0], parameters[2], parameters[1]));
             this.userName = response.username();
             this.authToken = response.authToken();
             this.state = State.SIGNEDIN;
@@ -210,19 +170,13 @@ public class ChessClient {
         }
     }
 
-    /**
-     * Creates a new game.
-     * @param parameters The game creation parameters (game name).
-     * @return The result of the game creation attempt.
-     */
     public String createGame(String[] parameters) {
         if (parameters.length != 1) {
             return SET_TEXT_COLOR_YELLOW + "Incorrect function call - newGame <newGameName> (makes a new chess game with specified name)"
                     + RESET_TEXT_COLOR;
         }
-        String gameName = parameters[0];
         try {
-            CreateGameResponse response = server.createGame(gameName, authToken);
+            CreateGameResponse response = server.createGame(parameters[0], authToken);
             setGameIndicies();
             return SET_TEXT_COLOR_MAGENTA + "Your new gameID: " + SET_TEXT_COLOR_GREEN +
                     getKeyFromValue(gameIndicies, Integer.parseInt(response.getGameID())) + RESET_TEXT_COLOR;
@@ -233,22 +187,18 @@ public class ChessClient {
         }
     }
 
-    /**
-     * Lists all current games.
-     * @return A list of all current games.
-     */
     public String listGames() {
         try {
             setGameIndicies();
-            GameData[] games = server.listGames(this.authToken);
+            GameData[] games = server.listGames(authToken);
             if (games.length == 0) {
                 return "There are no current games";
             }
             StringBuilder response = new StringBuilder("Current Chess Games: \n");
             int i = 1;
             for (GameData game : games) {
-                response.append(SET_TEXT_COLOR_MAGENTA + "[").append(i).append("]");
-                response.append(listGamesDisplay(game));
+                response.append(SET_TEXT_COLOR_MAGENTA + "[").append(i).append("]")
+                        .append(listGamesDisplay(game));
                 i++;
             }
             return response.toString();
@@ -259,21 +209,15 @@ public class ChessClient {
         }
     }
 
-    /**
-     * Joins an existing game.
-     * @param parameters The game join parameters (game ID and desired color).
-     * @return The result of the game join attempt.
-     */
     public String joinGame(String[] parameters) {
         if (parameters.length != 2) {
             return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given";
         }
         try {
-
             setGameIndicies();
-            Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
-            this.currentGame = server.joinGame(gameID.toString(), this.authToken, parameters[1]);
-            ws = new WebSocketFacade(serverUrl, notificationHandler, this.authToken);
+            Integer gameID = gameIndicies.get(Integer.parseInt(parameters[0]));
+            this.currentGame = server.joinGame(gameID.toString(), authToken, parameters[1]);
+            ws = new WebSocketFacade(serverUrl, notificationHandler, authToken);
             ChessGame.TeamColor color = "white".equalsIgnoreCase(parameters[1]) ? ChessGame.TeamColor.WHITE : ChessGame.TeamColor.BLACK;
             ws.joinGame(color, gameID);
             this.playerPerspective = color;
@@ -286,30 +230,29 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
+
     public String observeGame(String[] parameters) {
         if (parameters.length != 1) {
             return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given.";
         }
         try {
             setGameIndicies();
-            Integer gameID = this.gameIndicies.get(Integer.parseInt(parameters[0]));
-            this.currentGame = server.getGame(gameID.toString(), this.authToken);
+            Integer gameID = gameIndicies.get(Integer.parseInt(parameters[0]));
+            this.currentGame = server.getGame(gameID.toString(), authToken);
             this.playerPerspective = ChessGame.TeamColor.WHITE;
-            String board = "Observing Game: " + getKeyFromValue(gameIndicies, gameID);
             ws.observeGame(gameID);
-            return board;
+            return "Observing Game: " + getKeyFromValue(gameIndicies, gameID);
         } catch (ResponseException e) {
             return handleResponseException(e);
         } catch (Exception e) {
             return handleOtherExceptions(e);
         }
     }
+
     public String logout() {
         try {
-            server.logout(this.authToken);
-            this.authToken = null;
-            this.userName = "";
-            this.state = State.SIGNEDOUT;
+            server.logout(authToken);
+            resetUser();
             return "Signed out";
         } catch (ResponseException e) {
             return handleResponseException(e);
@@ -348,15 +291,9 @@ public class ChessClient {
         };
     }
 
-
-    /**
-     * Quits the application.
-     * @return A farewell message.
-     */
     public String quit() {
         return "Thanks for playing!";
     }
-    // -------------------------- Drawing Board and Game List --------------------------------
 
     private String drawBoard(ChessGame.TeamColor perspective) {
         return drawBoard(perspective, null);
@@ -378,7 +315,7 @@ public class ChessClient {
 
         boardString.append("\n").append(borderBackground).append(borderTextColor).append(letterBar)
                 .append(RESET_BG_COLOR).append(RESET_TEXT_COLOR).append("\n");
-        ChessPiece[][] board = this.currentGame.game().getBoard().getBoard();
+        ChessPiece[][] board = currentGame.game().getBoard().getBoard();
         int i = (perspective == ChessGame.TeamColor.BLACK) ? 1 : 8;
         int rowStart = (perspective == ChessGame.TeamColor.BLACK) ? 0 : 7;
         int rowEnd = (perspective == ChessGame.TeamColor.BLACK) ? board.length : -1;
@@ -389,7 +326,7 @@ public class ChessClient {
         Collection<ChessMove> validMoves = null;
         Collection<ChessPosition> endPositions = null;
         if (highlightPiece != null) {
-            validMoves = this.currentGame.game().validMoves(highlightPiece);
+            validMoves = currentGame.game().validMoves(highlightPiece);
             endPositions = new ArrayList<>();
             for (ChessMove move : validMoves) {
                 endPositions.add(move.getEndPosition());
@@ -402,13 +339,10 @@ public class ChessClient {
             boardString.append(border);
 
             for (int l = cellStart; l != cellEnd; l += cellStep) {
-
                 boolean highlighted = false;
                 if (highlightPiece != null) {
                     for (ChessPosition position : endPositions) {
-                        int pieceRow = position.getArrayRow();
-                        int pieceCol = position.getArrayColumn();
-                        if (pieceRow == k && pieceCol == l) {
+                        if (position.getArrayRow() == k && position.getArrayColumn() == l) {
                             highlighted = true;
                         }
                     }
@@ -433,6 +367,7 @@ public class ChessClient {
                 .append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
         return boardString.toString();
     }
+
     private static String listGamesDisplay(GameData game) {
         String whitePlayer = (game.whiteUsername() == null) ? "Available" : game.whiteUsername();
         String blackPlayer = (game.blackUsername() == null) ? "Available" : game.blackUsername();
@@ -441,40 +376,37 @@ public class ChessClient {
                 + SET_TEXT_COLOR_MAGENTA + "\n      WhiteTeam: " + SET_TEXT_COLOR_BLUE + whitePlayer
                 + SET_TEXT_COLOR_MAGENTA + " BlackTeam: " + SET_TEXT_COLOR_BLUE + blackPlayer + "\n";
     }
-    // -------------------------- Getters and Error Handling  --------------------------------
 
     public String getState() {
         return this.state.toString();
     }
+
     private void setGameIndicies() throws ResponseException {
-        GameData[] games = server.listGames(this.authToken);
+        GameData[] games = server.listGames(authToken);
         int i = 1;
         for (GameData game : games) {
             gameIndicies.put(i, game.gameID());
             i++;
         }
     }
+
     private String handleResponseException(ResponseException e) {
         if (e.statusCode() == 400) {
             return SET_TEXT_COLOR_YELLOW + e.getMessage();
         } else if (e.statusCode() == 401) {
-            if (Objects.equals(e.getMessage(), "failure: 401")) {
-                return SET_TEXT_COLOR_YELLOW + "Incorrect credentials";
-            }
-            return SET_TEXT_COLOR_YELLOW + e.getMessage()
+            return SET_TEXT_COLOR_YELLOW + (Objects.equals(e.getMessage(), "failure: 401") ? "Incorrect credentials" : e.getMessage())
                     + RESET_TEXT_COLOR;
         } else if (e.statusCode() == 403) {
-            if (Objects.equals(e.getMessage(), "failure: 403")) {
-                return SET_TEXT_COLOR_YELLOW + "Place/name already taken";
-            }
-            return SET_TEXT_COLOR_YELLOW + e.getMessage();
-        }  else {
+            return SET_TEXT_COLOR_YELLOW + (Objects.equals(e.getMessage(), "failure: 403") ? "Place/name already taken" : e.getMessage());
+        } else {
             return SET_TEXT_COLOR_YELLOW + "Looks like we are having issues on our end. Please try again later";
         }
     }
+
     private String handleOtherExceptions(Exception e) {
         return SET_TEXT_COLOR_YELLOW + "Invalid argument given, check help manual for valid arguments";
     }
+
     public static <K, V> K getKeyFromValue(Map<K, V> map, V value) {
         for (Map.Entry<K, V> entry : map.entrySet()) {
             if (entry.getValue().equals(value)) {
@@ -484,4 +416,16 @@ public class ChessClient {
         return null;
     }
 
+    private void resetGame() {
+        this.state = State.SIGNEDIN;
+        this.playerPerspective = null;
+        this.currentGame = null;
+        this.resignCheck = false;
+    }
+
+    private void resetUser() {
+        this.authToken = null;
+        this.userName = "";
+        this.state = State.SIGNEDOUT;
+    }
 }
