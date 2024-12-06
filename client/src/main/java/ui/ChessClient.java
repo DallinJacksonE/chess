@@ -12,10 +12,7 @@ import ui.responseobjects.*;
 import websocket.NotificationHandler;
 import websocket.WebSocketFacade;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static ui.EscapeSequences.*;
 
@@ -114,7 +111,7 @@ public class ChessClient {
             case "resign" -> resign();
             case "redraw" -> redraw();
             case "move" -> move(params);
-            case "highlight", "show", "hl" -> help();
+            case "highlight", "show", "hl" -> highlight(params);
             default -> help();
         };
     }
@@ -176,6 +173,12 @@ public class ChessClient {
 
     public String redraw() {
         return drawBoard(this.playerPerspective);
+    }
+
+    public String highlight(String[] params) {
+        int[] start = ChessPositionConverter.convertMove(params[0]);
+        ChessPosition startP = new ChessPosition(start[0], start[1]);
+        return  drawBoard(this.playerPerspective, startP);
     }
 
 
@@ -424,19 +427,24 @@ public class ChessClient {
                 + "                              " + RESET_TEXT_COLOR + RESET_BG_COLOR + whiteBoard;
     }
 
+    private String drawBoard(ChessGame.TeamColor perspective) {
+        return drawBoard(perspective, null);
+    }
 
     /**
      * Draws the board from a specific perspective.
      * @param perspective The team color perspective.
      * @return The string representation of the board.
      */
-    private String drawBoard(ChessGame.TeamColor perspective) {
+    private String drawBoard(ChessGame.TeamColor perspective, ChessPosition highlightPiece) {
         StringBuilder boardString = new StringBuilder();
         boardString.append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
         String borderBackground = SET_BG_COLOR_BLUE;
         String borderTextColor = SET_TEXT_COLOR_WHITE;
         String whiteCellBackground = setColor(false, 189, 189, 189);
         String blackCellBackground = setColor(false, 97, 97, 97);
+        String lightHighlightBackground = setColor(false, 66, 189, 65);
+        String darkHighlightBackground = setColor(false, 10, 126, 7);
         String whitePieceColor = setColor(true, 238, 238, 238);
         String blackPieceColor = setColor(true, 33, 33, 33);
         String letterBar = (perspective == ChessGame.TeamColor.BLACK) ? "    h  g  f  e  d  c  b  a    " :
@@ -453,13 +461,42 @@ public class ChessClient {
         int cellEnd = (perspective == ChessGame.TeamColor.BLACK) ? -1 : board.length;
         int cellStep = (perspective == ChessGame.TeamColor.BLACK) ? -1 : 1;
 
+        Collection<ChessMove> validMoves = null;
+        Collection<ChessPosition> endPositions = null;
+
+        if (highlightPiece != null) {
+            validMoves = this.currentGame.game().validMoves(highlightPiece);
+            endPositions = new ArrayList<>();
+            for (ChessMove move : validMoves) {
+                endPositions.add(move.getEndPosition());
+            }
+            endPositions.add(highlightPiece);
+        }
+
         for (int k = rowStart; k != rowEnd; k += rowStep) {
             ChessPiece[] row = board[k];
             String border = borderBackground + borderTextColor + " " + i + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
             boardString.append(border);
+
             for (int l = cellStart; l != cellEnd; l += cellStep) {
+
+                boolean highlighted = false;
+                if (highlightPiece != null) {
+                    for (ChessPosition position : endPositions) {
+                        int pieceRow = position.getArrayRow();
+                        int pieceCol = position.getArrayColumn();
+                        if (pieceRow == k && pieceCol == l) {
+                            highlighted = true;
+                        }
+                    }
+                }
+
                 ChessPiece cell = row[l];
                 String background = ((l + i) % 2 != 0) ? blackCellBackground : whiteCellBackground;
+                if (highlighted) {
+                    background = (Objects.equals(background, blackCellBackground)) ? darkHighlightBackground : lightHighlightBackground;
+                }
+
                 if (cell != null) {
                     String textColor = (cell.getTeamColor() == ChessGame.TeamColor.WHITE) ? whitePieceColor : blackPieceColor;
                     boardString.append(background).append(textColor).append(" ").append(cell.toPieceRep())
