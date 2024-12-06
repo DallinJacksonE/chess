@@ -67,10 +67,6 @@ public class SimpleLocalDataBase implements DataInterface {
         authTokens.put(authToken, data);
     }
 
-    @Override
-    public void deleteGame(int gameID) throws DataAccessException {
-        gameData.remove(gameID);
-    }
 
     @Override
     public AuthData getAuth(String authToken) {

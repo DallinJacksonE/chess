@@ -21,8 +21,6 @@ public interface DataInterface {
 
     void createAuth(String userData, AuthData authToken) throws DataAccessException;
 
-    public void deleteGame(int gameID) throws DataAccessException;
-
     AuthData getAuth(String authToken) throws DataAccessException;
 
     void deleteAuth(String authToken) throws DataAccessException;

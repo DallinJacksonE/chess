@@ -52,16 +52,6 @@ public class ConnectionManager {
         }
     }
 
-    public void removeAllFromGameRoom(String gameID) {
-        ArrayList<Connection> usersInGameRoom = connectionsInGame.get(gameID);
-        if (usersInGameRoom != null) {
-            for (Connection c : usersInGameRoom) {
-                c.updateColor(null);
-            }
-        }
-        connectionsInGame.remove(gameID);
-    }
-
     public void broadcastToGameRoom(String gameID, ServerMessage message) throws IOException {
         broadcastToGameRoom(gameID, message, null);
     }
