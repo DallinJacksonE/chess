@@ -102,8 +102,12 @@ public class WebSocketHandler {
             NotificationServerMessage notification = new NotificationServerMessage(
                     ServerMessage.ServerMessageType.NOTIFICATION, moveMessage);
             connections.broadcastToGameRoom(command.getGameID().toString(), notification, userData.username());
-            if (extraMsg != null) connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
-            if (gameOver) db.deleteGame(command.getGameID());
+            if (extraMsg != null) {
+                connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
+            }
+            if (gameOver) {
+                db.deleteGame(command.getGameID());
+            }
         } catch (InvalidMoveException e) {
             sendError(session, e.getMessage());
         } catch (Exception e) {
