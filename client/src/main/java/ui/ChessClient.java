@@ -72,7 +72,6 @@ public class ChessClient {
 
     private String handlePlayingGame(String cmd, String[] params) {
         return switch (cmd) {
-            case "help" -> help();
             case "leave" -> leave();
             case "resign" -> resign();
             case "redraw" -> redraw();
@@ -96,7 +95,7 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
         resetGame();
-        return "Resigned from game.";
+        return "Resigned from game";
     }
 
     public String move(String[] params) {
@@ -240,6 +239,8 @@ public class ChessClient {
             Integer gameID = gameIndicies.get(Integer.parseInt(parameters[0]));
             this.currentGame = server.getGame(gameID.toString(), authToken);
             this.playerPerspective = ChessGame.TeamColor.WHITE;
+            this.state = State.INGAMEROOM;
+            ws = new WebSocketFacade(serverUrl, notificationHandler, authToken);
             ws.observeGame(gameID);
             return "Observing Game: " + getKeyFromValue(gameIndicies, gameID);
         } catch (ResponseException e) {

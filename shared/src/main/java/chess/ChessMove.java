@@ -66,9 +66,9 @@ public class ChessMove {
     }
 
     private String positionToLetter(ChessPosition position) {
-        char column = (char) ('a' + position.getColumn());
-        int row = position.getRow() + 1;
-        return "" + column + row;
+        String column = position.getColAsLetter();
+        int row = position.getRow();
+        return column + row;
     }
 
     @Override

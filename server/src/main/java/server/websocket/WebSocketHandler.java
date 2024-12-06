@@ -51,7 +51,6 @@ public class WebSocketHandler {
             if (userData == null) {
                 return;
             }
-
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
                 sendError(session, INVALIDIDERROR);
@@ -78,16 +77,16 @@ public class WebSocketHandler {
                 sendError(session, "Can't put self in check");
                 return;
             }
-            if (game.isInCheck(oppColor)) {
+            if (game.isInCheckmate(oppColor)) {
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
+                        String.format("Checkmate, %s wins! Please leave game to join a new one", userData.username()));
+                gameOver = true;
+            } else if (game.isInCheck(oppColor)) {
                 extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
                         String.format("%s is in check", oppName));
-            } else if (game.isInCheckmate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                        String.format("Checkmate, %s wins!", userData.username()));
-                gameOver = true;
             } else if (game.isInStalemate(oppColor)) {
                 extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                        String.format("%s in stalemate, %s wins!", oppName, userData.username()));
+                        String.format("%s in stalemate, %s wins! Please leave game to join a new one", oppName, userData.username()));
                 gameOver = true;
             }
 
@@ -122,7 +121,6 @@ public class WebSocketHandler {
             if (userData == null) {
                 return;
             }
-
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
                 sendError(session, INVALIDIDERROR);
@@ -216,7 +214,8 @@ public class WebSocketHandler {
 
             String winner = equals ? gameData.blackUsername() : gameData.whiteUsername();
             NotificationServerMessage msg = new NotificationServerMessage(
-                    ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s resigned, %s wins!",
+                    ServerMessage.ServerMessageType.NOTIFICATION, String.format(
+                            "%s resigned, %s wins! Please leave game to join a new one",
                     userData.username(), winner));
             connections.broadcastToGameRoom(command.getGameID().toString(), msg);
             connections.removeAllFromGameRoom(command.getGameID().toString());
