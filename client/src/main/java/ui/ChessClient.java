@@ -41,14 +41,8 @@ public class ChessClient {
         this.serverUrl = serverUrl;
         this.notificationHandler = notificationHandler;
     }
-
     // -------------------------- Evaluating the Command Passed from Repl --------------------------------
 
-    /**
-     * Evaluates the input command and executes the corresponding action.
-     * @param input The input command.
-     * @return The result of the command execution.
-     */
     public String eval(String input) {
         try {
             var tokens = input.toLowerCase().split(" ");
@@ -64,13 +58,6 @@ public class ChessClient {
         }
     }
 
-    /**
-     * Handles commands when the user is signed out.
-     * @param cmd The command.
-     * @param params The command parameters.
-     * @return The result of the command execution.
-     * @throws ResponseException If an error occurs during command execution.
-     */
     private String handleSignedOut(String cmd, String[] params) throws ResponseException {
         return switch (cmd) {
             case "login" -> login(params);
@@ -80,12 +67,6 @@ public class ChessClient {
         };
     }
 
-    /**
-     * Handles commands when the user is signed in.
-     * @param cmd The command.
-     * @param params The command parameters.
-     * @return The result of the command execution.
-     */
     private String handleSignedIn(String cmd, String[] params) {
         return switch (cmd) {
             case "logout" -> logout();
@@ -96,14 +77,6 @@ public class ChessClient {
             default -> help();
         };
     }
-
-    /**
-     * Handles commands when the user is playing a game.
-     *
-     * @param cmd    The command.
-     * @param params
-     * @return The result of the command execution.
-     */
     private String handlePlayingGame(String cmd, String[] params) {
         return switch (cmd) {
             case "help" -> help();
@@ -158,7 +131,6 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
-
     public String leave() {
         try {
             ws.leaveGame(this.currentGame.gameID());
@@ -180,11 +152,7 @@ public class ChessClient {
         ChessPosition startP = new ChessPosition(start[0], start[1]);
         return  drawBoard(this.playerPerspective, startP);
     }
-
-
-
     // -------------------------- Talking to Server Facade --------------------------------
-
     /**
      * Logs in the user.
      * @param parameters The login parameters (username and password).
@@ -214,7 +182,6 @@ public class ChessClient {
         }
     }
 
-
     /**
      * Registers a new user.
      * @param parameters The registration parameters (username, email, and password).
@@ -243,7 +210,6 @@ public class ChessClient {
         }
     }
 
-
     /**
      * Creates a new game.
      * @param parameters The game creation parameters (game name).
@@ -266,7 +232,6 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
-
 
     /**
      * Lists all current games.
@@ -293,7 +258,6 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
-
 
     /**
      * Joins an existing game.
@@ -322,13 +286,6 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
-
-
-    /**
-     * Observes an existing game.
-     * @param parameters The game observe parameters (game ID).
-     * @return The result of the game observe attempt.
-     */
     public String observeGame(String[] parameters) {
         if (parameters.length != 1) {
             return SET_TEXT_COLOR_YELLOW + "Incorrect arguments given.";
@@ -347,12 +304,6 @@ public class ChessClient {
             return handleOtherExceptions(e);
         }
     }
-
-
-    /**
-     * Logs out the user.
-     * @return The result of the logout attempt.
-     */
     public String logout() {
         try {
             server.logout(this.authToken);
@@ -367,11 +318,6 @@ public class ChessClient {
         }
     }
 
-
-    /**
-     * Provides help information based on the current state.
-     * @return The help information.
-     */
     public String help() {
         return switch (state) {
             case SIGNEDOUT -> SET_TEXT_COLOR_MAGENTA + """
@@ -410,32 +356,12 @@ public class ChessClient {
     public String quit() {
         return "Thanks for playing!";
     }
-
-
     // -------------------------- Drawing Board and Game List --------------------------------
-
-
-    /**
-     * Draws the board from both perspectives.
-     * @param divideColor The color to divide the boards.
-     * @return The string representation of the board.
-     */
-    private String drawBothBoardPerspective(String divideColor) {
-        String blackBoard = drawBoard(ChessGame.TeamColor.BLACK);
-        String whiteBoard = drawBoard(ChessGame.TeamColor.WHITE);
-        return blackBoard + RESET_TEXT_COLOR + RESET_BG_COLOR + "\n" + divideColor
-                + "                              " + RESET_TEXT_COLOR + RESET_BG_COLOR + whiteBoard;
-    }
 
     private String drawBoard(ChessGame.TeamColor perspective) {
         return drawBoard(perspective, null);
     }
 
-    /**
-     * Draws the board from a specific perspective.
-     * @param perspective The team color perspective.
-     * @return The string representation of the board.
-     */
     private String drawBoard(ChessGame.TeamColor perspective, ChessPosition highlightPiece) {
         StringBuilder boardString = new StringBuilder();
         boardString.append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
@@ -460,10 +386,8 @@ public class ChessClient {
         int cellStart = (perspective == ChessGame.TeamColor.BLACK) ? 7 : 0;
         int cellEnd = (perspective == ChessGame.TeamColor.BLACK) ? -1 : board.length;
         int cellStep = (perspective == ChessGame.TeamColor.BLACK) ? -1 : 1;
-
         Collection<ChessMove> validMoves = null;
         Collection<ChessPosition> endPositions = null;
-
         if (highlightPiece != null) {
             validMoves = this.currentGame.game().validMoves(highlightPiece);
             endPositions = new ArrayList<>();
@@ -472,7 +396,6 @@ public class ChessClient {
             }
             endPositions.add(highlightPiece);
         }
-
         for (int k = rowStart; k != rowEnd; k += rowStep) {
             ChessPiece[] row = board[k];
             String border = borderBackground + borderTextColor + " " + i + " " + RESET_BG_COLOR + RESET_TEXT_COLOR;
@@ -490,13 +413,11 @@ public class ChessClient {
                         }
                     }
                 }
-
                 ChessPiece cell = row[l];
                 String background = ((l + i) % 2 != 0) ? blackCellBackground : whiteCellBackground;
                 if (highlighted) {
                     background = (Objects.equals(background, blackCellBackground)) ? darkHighlightBackground : lightHighlightBackground;
                 }
-
                 if (cell != null) {
                     String textColor = (cell.getTeamColor() == ChessGame.TeamColor.WHITE) ? whitePieceColor : blackPieceColor;
                     boardString.append(background).append(textColor).append(" ").append(cell.toPieceRep())
@@ -510,16 +431,8 @@ public class ChessClient {
         }
         boardString.append(borderBackground).append(borderTextColor).append(letterBar)
                 .append(RESET_BG_COLOR).append(RESET_TEXT_COLOR);
-
         return boardString.toString();
     }
-
-
-    /**
-     * Displays the details of a game.
-     * @param game The game data.
-     * @return A string representation of the game details.
-     */
     private static String listGamesDisplay(GameData game) {
         String whitePlayer = (game.whiteUsername() == null) ? "Available" : game.whiteUsername();
         String blackPlayer = (game.blackUsername() == null) ? "Available" : game.blackUsername();
@@ -528,18 +441,11 @@ public class ChessClient {
                 + SET_TEXT_COLOR_MAGENTA + "\n      WhiteTeam: " + SET_TEXT_COLOR_BLUE + whitePlayer
                 + SET_TEXT_COLOR_MAGENTA + " BlackTeam: " + SET_TEXT_COLOR_BLUE + blackPlayer + "\n";
     }
-
-
     // -------------------------- Getters and Error Handling  --------------------------------
 
-    /**
-     * Gets the current state of the client.
-     * @return The current state.
-     */
     public String getState() {
         return this.state.toString();
     }
-
     private void setGameIndicies() throws ResponseException {
         GameData[] games = server.listGames(this.authToken);
         int i = 1;
@@ -548,13 +454,6 @@ public class ChessClient {
             i++;
         }
     }
-
-
-    /**
-     * Handles ResponseException errors.
-     * @param e The ResponseException.
-     * @return The error message.
-     */
     private String handleResponseException(ResponseException e) {
         if (e.statusCode() == 400) {
             return SET_TEXT_COLOR_YELLOW + e.getMessage();
@@ -573,18 +472,9 @@ public class ChessClient {
             return SET_TEXT_COLOR_YELLOW + "Looks like we are having issues on our end. Please try again later";
         }
     }
-
-
-    /**
-     * Handles other exceptions.
-     * @param e The Exception.
-     * @return The error message.
-     */
     private String handleOtherExceptions(Exception e) {
         return SET_TEXT_COLOR_YELLOW + "Invalid argument given, check help manual for valid arguments";
     }
-
-
     public static <K, V> K getKeyFromValue(Map<K, V> map, V value) {
         for (Map.Entry<K, V> entry : map.entrySet()) {
             if (entry.getValue().equals(value)) {
@@ -594,9 +484,4 @@ public class ChessClient {
         return null;
     }
 
-    private void assertSignedIn() throws ResponseException {
-        if (state == State.SIGNEDOUT) {
-            throw new ResponseException(400, "You must sign in");
-        }
-    }
 }

@@ -16,16 +16,17 @@ import websocket.messages.ErrorServerMessage;
 import websocket.messages.LoadServerMessage;
 import websocket.messages.NotificationServerMessage;
 import websocket.messages.ServerMessage;
-import websocket.commands.Action;
 import java.io.IOException;
 import java.util.Objects;
-
 
 @WebSocket
 public class WebSocketHandler {
 
+    private final DataInterface db;
     private final ConnectionManager connections = new ConnectionManager();
-    private DataInterface db;
+    private static final String TOKENERROR = "Error invalid token";
+    private static final String USEREXISTERROR = "Error user does not exist";
+    private static final String INVALIDIDERROR = "ERROR invalid game ID";
 
     public WebSocketHandler(DataInterface db) {
         this.db = db;
@@ -45,86 +46,56 @@ public class WebSocketHandler {
     private void makeMove(Session session, String message) throws IOException {
         MakeMoveCommand command = new Gson().fromJson(message, MakeMoveCommand.class);
         try {
-            AuthData auth = db.getAuth(command.getAuthToken());
-            if (auth == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid token");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
-            UserData userData = db.getUser(auth.username());
-            if (userData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR user does not exist");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
+            AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
+            UserData userData = validateUserData(session, auth, db);
+            if (userData == null) return;
+
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid game ID");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, INVALIDIDERROR);
                 return;
             }
+
             ChessGame game = gameData.game();
             if (connections.getConnection(userData.username()).color != game.getTeamTurn()) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR other team turn");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, "ERROR other team turn");
                 return;
             }
+
             ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
-            ChessGame.TeamColor oppColor = (userColor == ChessGame.TeamColor.WHITE) ? ChessGame.TeamColor.BLACK
-                    : ChessGame.TeamColor.WHITE;
-            String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername()
-                    : gameData.whiteUsername();
+            ChessGame.TeamColor oppColor = (userColor == ChessGame.TeamColor.WHITE) ? ChessGame.TeamColor.BLACK : ChessGame.TeamColor.WHITE;
+            String oppName = (oppColor == ChessGame.TeamColor.BLACK) ? gameData.blackUsername() : gameData.whiteUsername();
             game.makeMove(command.move);
+
             NotificationServerMessage extraMsg = null;
-            Boolean gameOver = false;
-            // --- Check for self check, other team check, other team checkmate, and stalemate
+            boolean gameOver = false;
+
             if (game.isInCheck(userColor)) {
-                NotificationServerMessage msg = new NotificationServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "Can't put self in check");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, "Can't put self in check");
                 return;
             }
             if (game.isInCheck(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                        String.format("%s is in check", oppName));
-
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s is in check", oppName));
             } else if (game.isInCheckmate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                        String.format("Checkmate, %s wins!", userData.username()));
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("Checkmate, %s wins!", userData.username()));
                 gameOver = true;
-
             } else if (game.isInStalemate(oppColor)) {
-                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                        String.format("%s in stalemate, %s wins!", oppName, userData.username()));
+                extraMsg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s in stalemate, %s wins!", oppName, userData.username()));
                 gameOver = true;
             }
 
-
-
-            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(), gameData.blackUsername(),
-                    gameData.gameName(), game);
+            GameData newGame = new GameData(command.getGameID(), gameData.whiteUsername(), gameData.blackUsername(), gameData.gameName(), game);
             db.updateGame(command.getGameID(), newGame);
-            GameData check = db.getGame(gameData.gameID());
             LoadServerMessage loadMessage = new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, newGame);
             connections.broadcastToGameRoom(command.getGameID().toString(), loadMessage);
 
-            var message2 = String.format("%s made move %s", userData.username(), command.move.toLetterCombo());
-            var notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message2);
+            String moveMessage = String.format("%s made move %s", userData.username(), command.move.toLetterCombo());
+            NotificationServerMessage notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, moveMessage);
             connections.broadcastToGameRoom(command.getGameID().toString(), notification, userData.username());
-            if (extraMsg != null) {
-                connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
-            }
-            if (Boolean.TRUE.equals(gameOver)) {
-                db.deleteGame(command.getGameID());
-            }
+            if (extraMsg != null) connections.broadcastToGameRoom(command.getGameID().toString(), extraMsg);
+            if (gameOver) db.deleteGame(command.getGameID());
         } catch (InvalidMoveException e) {
-            String message3 = e.getMessage();
-            var errorMessage = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR, message3);
-            session.getRemote().sendString(errorMessage.toString());
+            sendError(session, e.getMessage());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -132,43 +103,23 @@ public class WebSocketHandler {
 
     private void joinGame(Session session, UserGameCommand command) throws IOException {
         try {
-            AuthData auth = db.getAuth(command.getAuthToken());
-            if (auth == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid token");
-                session.getRemote().sendString(msg.toString());
-            }
-            UserData userData = db.getUser(auth.username());
-            if (userData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR user does not exist");
-                session.getRemote().sendString(msg.toString());
-            }
+            AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
+            UserData userData = validateUserData(session, auth, db);
+            if (userData == null) return;
+
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid game ID");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, INVALIDIDERROR);
+                return;
             }
-            ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
 
+            ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
             connections.add(userData.username(), session, userColor);
             connections.addToGameRoom(command.getGameID().toString(), userData.username(), session);
-            String message;
 
-            if (userColor == null) {
-                message = String.format("%s is observing", userData.username());
-            } else {
-                String color = userColor.toString();
-                message = String.format("%s joined game as %s", userData.username(), color);
-
-            }
-            connections.sendTo(userData.username(),
-                    new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, gameData));
-
-            var serverMessage = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message);
-            connections.broadcastToGameRoom(command.getGameID().toString(), serverMessage, userData.username());
-
+            String message = (userColor == null) ? String.format("%s is observing", userData.username()) : String.format("%s joined game as %s", userData.username(), userColor);
+            connections.sendTo(userData.username(), new LoadServerMessage(ServerMessage.ServerMessageType.LOAD_GAME, gameData));
+            connections.broadcastToGameRoom(command.getGameID().toString(), new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), userData.username());
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -176,101 +127,67 @@ public class WebSocketHandler {
 
     private void leaveGame(Session session, UserGameCommand command) throws IOException {
         try {
-            AuthData auth = db.getAuth(command.getAuthToken());
-            if (auth == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid token");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
-            UserData userData = db.getUser(auth.username());
-            if (userData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR user does not exist");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
+            AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
+            UserData userData = validateUserData(session, auth, db);
+            if (userData == null) return;
+
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid game ID");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, INVALIDIDERROR);
                 return;
             }
+
             ChessGame.TeamColor userColor = getUserTeamColor(gameData, userData.username());
             String username = userData.username();
             GameData game = gameData;
+
             if (userColor == connections.getConnection(username).color) {
                 if (userColor == ChessGame.TeamColor.WHITE && username.equals(game.whiteUsername())) {
-                    game = new GameData(game.gameID(), null, game.blackUsername(),
-                            game.gameName(), game.game());
+                    game = new GameData(game.gameID(), null, game.blackUsername(), game.gameName(), game.game());
                     db.updateGame(game.gameID(), game);
                 } else if (userColor == ChessGame.TeamColor.BLACK && username.equals(game.blackUsername())) {
-                    game = new GameData(game.gameID(), game.whiteUsername(), null,
-                            game.gameName(), game.game());
+                    game = new GameData(game.gameID(), game.whiteUsername(), null, game.gameName(), game.game());
                     db.updateGame(game.gameID(), game);
                 }
             } else {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR cannot make other user leave");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, "ERROR cannot make other user leave");
                 return;
             }
 
-            var message = String.format("%s left game", username);
-            var notification = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message);
+            String message = String.format("%s left game", username);
             connections.remove(username);
             connections.removeFromGameRoom(command.getGameID().toString(), username);
-            connections.broadcastToGameRoom(command.getGameID().toString(), notification, username);
-
+            connections.broadcastToGameRoom(command.getGameID().toString(), new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, message), username);
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
     }
 
     private void resign(Session session, UserGameCommand command) {
         try {
-            AuthData auth = db.getAuth(command.getAuthToken());
-            if (auth == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid token");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
-            UserData userData = db.getUser(auth.username());
-            if (userData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR user does not exist");
-                session.getRemote().sendString(msg.toString());
-                return;
-            }
+            AuthData auth = validateAuthToken(session, command.getAuthToken(), db);
+            UserData userData = validateUserData(session, auth, db);
+            if (userData == null) return;
+
             GameData gameData = db.getGame(command.getGameID());
             if (gameData == null) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR invalid game ID");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, INVALIDIDERROR);
                 return;
             }
+
             boolean equals = Objects.equals(userData.username(), gameData.whiteUsername());
-            if (!equals &&
-                    !Objects.equals(userData.username(), gameData.blackUsername())) {
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR cannot resign while observing");
-                session.getRemote().sendString(msg.toString());
+            if (!equals && !Objects.equals(userData.username(), gameData.blackUsername())) {
+                sendError(session, "ERROR cannot resign while observing");
                 return;
             }
+
             if (connections.connectionsInGame.get(command.getGameID().toString()) == null) {
-                //game room doesn't exist
-                ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR,
-                        "ERROR cannot resign, game has been decided");
-                session.getRemote().sendString(msg.toString());
+                sendError(session, "ERROR cannot resign, game has been decided");
                 return;
             }
 
             String winner = equals ? gameData.blackUsername() : gameData.whiteUsername();
-            NotificationServerMessage msg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION,
-                    String.format("%s resigned, %s wins!", userData.username(), winner));
+            NotificationServerMessage msg = new NotificationServerMessage(ServerMessage.ServerMessageType.NOTIFICATION, String.format("%s resigned, %s wins!", userData.username(), winner));
             connections.broadcastToGameRoom(command.getGameID().toString(), msg);
             connections.removeAllFromGameRoom(command.getGameID().toString());
             db.deleteGame(command.getGameID());
@@ -289,4 +206,36 @@ public class WebSocketHandler {
         }
     }
 
+    private AuthData validateAuthToken(Session session, String authToken, DataInterface db) throws IOException {
+        try {
+            AuthData auth = db.getAuth(authToken);
+            if (auth == null) {
+                sendError(session, TOKENERROR);
+                return null;
+            }
+            return auth;
+        } catch (Exception e) {
+            System.out.println("Auth validation failed");
+            return null;
+        }
+    }
+
+    private UserData validateUserData(Session session, AuthData auth, DataInterface db) throws IOException {
+        try {
+            UserData userData = db.getUser(auth.username());
+            if (userData == null) {
+                sendError(session, USEREXISTERROR);
+                return null;
+            }
+            return userData;
+        } catch (Exception e) {
+            System.out.println("Auth validation failed");
+            return null;
+        }
+    }
+
+    private void sendError(Session session, String errorMessage) throws IOException {
+        ErrorServerMessage msg = new ErrorServerMessage(ServerMessage.ServerMessageType.ERROR, errorMessage);
+        session.getRemote().sendString(msg.toString());
+    }
 }

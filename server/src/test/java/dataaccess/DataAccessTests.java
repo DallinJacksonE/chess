@@ -106,24 +106,6 @@ class DataAccessTests {
         assertEquals(3, db.listGames().size());
     }
 
-//    @Test
-//    void updateGameSwapsBoards() throws DataAccessException, InvalidMoveException {
-//        ChessGame newChessGame = new ChessGame();
-//        GameData newGame = new GameData(1111, "username", "bob", "WillWin", newChessGame);
-//        db.createGame(newGame);
-//        ChessGame anotherChessGame = new ChessGame();
-//        anotherChessGame.makeMove(new ChessMove(new ChessPosition(2, 3), new ChessPosition(3, 3), null));
-//        GameData newGame2 = new GameData(2222, "tom", "bomber dill", "tree snack", anotherChessGame);
-//        db.createGame(newGame2);
-//        ChessBoard board1 = newChessGame.getBoard();
-//        ChessBoard board2 = anotherChessGame.getBoard();
-//        assertNotEquals(board2, board1);
-//        db.updateGame(1111, new GameData(1111, "username", "bob", "WillWin", anotherChessGame));
-//        board1 = db.getGame(1111).game().getBoard();
-//        board2 = db.getGame(2222).game().getBoard();
-//        assertEquals(board2, board1);
-//    }
-
     @Test
     void updateGameValid() throws DataAccessException, InvalidMoveException {
         ChessGame initialGame = new ChessGame();
